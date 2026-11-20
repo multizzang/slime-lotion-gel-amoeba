@@ -1,0 +1,771 @@
+:root {
+  --bg-dark: #0e131a;
+  --panel-bg: #161d27;
+  --panel-border: #2a3648;
+  --aqua: #1bd4ff;
+  --lime: #a7f432;
+  --danger: #ff334b;
+  --kanshi: #ff9f2e;
+  --nico: #ff7cc3;
+  --moi: #58a6ff;
+  --keigo: #bd85ff;
+  --text-main: #f2f6fc;
+  --text-muted: #9aa8bc;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  overscroll-behavior: none;
+}
+
+body {
+  background: radial-gradient(circle at top, #182738 0%, #0b0f15 72%);
+  color: var(--text-main);
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 1040px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.app-shell.pure-anime {
+  max-width: 100vw;
+  height: 100dvh;
+  justify-content: center;
+}
+
+.app-shell.pure-anime .hud-element {
+  display: none !important;
+}
+
+.app-shell.pure-anime .viewport-frame {
+  border-radius: 0;
+  border: none;
+  width: 100%;
+  height: 100dvh;
+  aspect-ratio: auto;
+}
+
+/* Header */
+.channel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.channel-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.live-badge {
+  background: #e11d48;
+  color: #fff;
+  font-weight: 900;
+  font-size: 11px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  animation: pulseRec 1.4s infinite;
+  white-space: nowrap;
+}
+
+@keyframes pulseRec {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.title-stack h1 {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--aqua);
+  text-shadow: 0 0 12px rgba(27, 212, 255, 0.3);
+}
+
+.kr-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lime);
+  margin-left: 5px;
+}
+
+.creator-tag {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  background: #0d1219;
+  border: 1px solid #283446;
+  border-radius: 8px;
+  padding: 4px 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+
+.stat-pill.danger { border-color: rgba(255, 51, 75, 0.5); }
+.stat-pill.views { border-color: rgba(27, 212, 255, 0.45); }
+
+.stat-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.stat-val {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-pill.danger .stat-val { color: #ff6275; }
+.stat-pill.views .stat-val { color: var(--aqua); }
+
+/* 3D Viewport Frame */
+.stage-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.viewport-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #87dcff;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid #2d3e54;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.58);
+  touch-action: none;
+}
+
+#three-root {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#three-root canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+#three-root canvas:active {
+  cursor: grabbing;
+}
+
+/* Exact Anime Dripping Slime Title Overlay */
+.anime-title-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2% 4% 2.5%;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(0, 40, 70, 0.04) 0%, rgba(0, 20, 40, 0.16) 100%);
+}
+
+.anime-title-overlay.hidden {
+  display: none;
+}
+
+.slime-title-svg-wrap {
+  width: min(90%, 820px);
+  pointer-events: none;
+  animation: slimeFloat 3s ease-in-out infinite;
+}
+
+@keyframes slimeFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(4px); }
+}
+
+.slime-title-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.slime-jp-line1, .slime-jp-line2 {
+  font-family: 'Yu Gothic', 'Meiryo', 'Hiragino Kaku Gothic ProN', 'Malgun Gothic', sans-serif;
+  font-weight: 900;
+}
+.slime-jp-line1 { font-size: 84px; letter-spacing: 3px; }
+.slime-jp-line2 { font-size: 86px; letter-spacing: 4px; }
+
+.drip {
+  animation: dripStretch 2.4s ease-in-out infinite;
+  transform-origin: center top;
+}
+.drip-2 { animation-delay: 0.45s; }
+.drip-3 { animation-delay: 0.9s; }
+.drip-4 { animation-delay: 1.3s; }
+.drip-5 { animation-delay: 0.7s; }
+.drip-6 { animation-delay: 1.6s; }
+
+@keyframes dripStretch {
+  0%, 100% { transform: scaleY(0.85); opacity: 0.9; }
+  60% { transform: scaleY(1.22); opacity: 1; }
+}
+
+.red-slime-start-btn {
+  pointer-events: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: min(40%, 290px);
+  padding: 0;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  animation: redSplashIn 0.75s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+@keyframes redSplashIn {
+  0% { transform: translateY(-80px) scale(0.75, 1.35); opacity: 0; }
+  70% { transform: translateY(6px) scale(1.06, 0.94); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.red-slime-start-btn:hover { transform: scale(1.07); filter: brightness(1.12); }
+.red-slime-start-btn:active { transform: scale(0.95); }
+
+.red-slime-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.red-start-text {
+  font-family: 'Comic Sans MS', 'Segoe Print', 'Chalkboard SE', cursive, sans-serif;
+  font-size: 74px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.title-controls-pill {
+  pointer-events: auto;
+  background: rgba(10, 18, 28, 0.8);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  color: #eef6ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.title-controls-pill .sep { opacity: 0.45; }
+.mobile-only { display: none; }
+
+kbd {
+  display: inline-block;
+  background: #243144;
+  border: 1px solid #485b77;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  font-family: monospace;
+}
+
+/* =========================================================================
+   MOBILE MULTI-TOUCH DUAL VIRTUAL JOYSTICKS + JUMP BUTTONS
+   ========================================================================= */
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 14;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.touch-controls.hidden {
+  display: none;
+}
+
+.touch-top-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.touch-mini-btn {
+  background: rgba(12, 20, 32, 0.62);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  backdrop-filter: blur(4px);
+  touch-action: none;
+}
+
+.touch-mini-btn:active {
+  background: rgba(27, 212, 255, 0.55);
+}
+
+.touch-cluster {
+  position: absolute;
+  bottom: 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.touch-cluster.left { left: 14px; }
+.touch-cluster.right { right: 14px; }
+
+.joystick-base {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(10, 22, 36, 0.45) 100%);
+  border: 2.5px solid rgba(255, 255, 255, 0.48);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 0 18px rgba(27, 212, 255, 0.2);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.joy-label {
+  position: absolute;
+  top: 8px;
+  font-size: 10px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
+
+.joystick-knob {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #7aefff 42%, #0fa5db 100%);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  transform: translate(0px, 0px);
+  transition: transform 0.04s linear;
+}
+
+.touch-jump-btn {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.85);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.touch-jump-btn.p1 {
+  background: radial-gradient(circle at 35% 30%, #ff93cc 0%, #e8358e 100%);
+}
+
+.touch-jump-btn.p2 {
+  background: radial-gradient(circle at 35% 30%, #7cd8ff 0%, #148ce0 100%);
+}
+
+.touch-jump-btn.active, .touch-jump-btn:active {
+  transform: scale(0.9);
+  filter: brightness(1.18);
+}
+
+/* Anime TV Variety Bold Telop Popup */
+.anime-popup-telop {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  transform: translateX(-50%);
+  z-index: 12;
+  pointer-events: none;
+  max-width: 88%;
+  text-align: center;
+  font-size: clamp(19px, 3vw, 34px);
+  font-weight: 900;
+  color: #ffffff;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 7px #111;
+  text-shadow: 0 5px 14px rgba(0, 0, 0, 0.65);
+  animation: telopPop 0.22s cubic-bezier(0.2, 1.4, 0.3, 1);
+  white-space: pre-line;
+  line-height: 1.2;
+}
+
+.anime-popup-telop.hidden { display: none; }
+
+@keyframes telopPop {
+  0% { transform: translateX(-50%) scale(0.75); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* Modals */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(8, 14, 22, 0.78);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.modal-overlay.hidden { display: none; }
+
+.modal-card {
+  background: linear-gradient(160deg, #1a2535 0%, #101722 100%);
+  border: 2px solid rgba(27, 212, 255, 0.5);
+  border-radius: 16px;
+  padding: 20px 24px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.65);
+}
+
+.modal-badge {
+  display: inline-block;
+  background: linear-gradient(90deg, #ff334b, #ff9f2e);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.modal-card h2 {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--aqua);
+  margin-bottom: 8px;
+}
+
+.modal-desc {
+  font-size: 13.5px;
+  color: #dce7f5;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.ending-note {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.modal-stats {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-stats > div {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #2e3e56;
+  border-radius: 10px;
+  padding: 7px 14px;
+  min-width: 115px;
+}
+
+.modal-stats span { display: block; font-size: 10.5px; color: var(--text-muted); }
+.modal-stats strong { font-size: 17px; color: #ffe066; }
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-primary, .btn-secondary {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #42e8ff 0%, #0ba7d6 100%);
+  color: #031d29;
+  box-shadow: 0 4px 0 #076b8c;
+}
+
+.btn-secondary {
+  background: #273345;
+  color: #e6eef9;
+  border: 1px solid #41536e;
+}
+
+.restore-hud-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 18;
+  background: rgba(12, 20, 30, 0.7);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.restore-hud-btn.hidden { display: none; }
+
+/* Telop Bar */
+.telop-bar {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: linear-gradient(90deg, #18212e 0%, #121822 100%);
+  border: 2px solid #2c3a4f;
+  border-radius: 12px;
+  padding: 9px 12px;
+  min-height: 62px;
+}
+
+.telop-bar.speaker-kanshi { border-color: var(--kanshi); }
+.telop-bar.speaker-nico { border-color: var(--nico); }
+.telop-bar.speaker-moi { border-color: var(--moi); }
+.telop-bar.speaker-keigo { border-color: var(--keigo); }
+
+.speaker-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 54px;
+  background: #0d121a;
+  border-radius: 9px;
+  padding: 5px 6px;
+  border: 1px solid #2b384b;
+}
+
+.avatar-emoji { font-size: 20px; line-height: 1; }
+.avatar-name { font-size: 10.5px; font-weight: 800; margin-top: 2px; color: #fff; }
+
+.telop-text-wrap { flex: 1; min-width: 0; }
+
+.telop-text {
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.telop-bar.speaker-kanshi .telop-text { color: #ffd18a; }
+.telop-bar.speaker-nico .telop-text { color: #ffb5df; }
+.telop-bar.speaker-moi .telop-text { color: #a7d4ff; }
+.telop-bar.speaker-keigo .telop-text { color: #dfbeff; }
+
+.telop-editor {
+  font-size: 11px;
+  color: #93a4bc;
+  margin-top: 2px;
+}
+
+/* Control Dock */
+.control-dock {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.dock-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.dock-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.stage-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.stage-btn {
+  background: #0d131c;
+  color: #c5d3e6;
+  border: 1px solid #304056;
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.stage-btn.active {
+  background: var(--aqua);
+  color: #031a24;
+  border-color: var(--aqua);
+}
+
+.stage-btn.cleared::after { content: ' ✓'; font-weight: 900; }
+
+.dock-btn {
+  background: #222c3b;
+  color: #e5eef9;
+  border: 1px solid #38475e;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dock-btn:hover { background: #2d3a4e; }
+.dock-btn strong { color: var(--aqua); }
+
+/* =========================================================================
+   RESPONSIVE MOBILE PHONE TUNING (Portrait & Landscape)
+   ========================================================================= */
+@media (pointer: coarse), (max-width: 760px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: inline; }
+
+  body {
+    padding: 6px;
+    align-items: flex-start;
+  }
+
+  .creator-tag { display: none; }
+  .title-stack h1 { font-size: 14px; }
+  .kr-sub { display: none; }
+
+  .viewport-frame {
+    aspect-ratio: 4 / 3;
+    min-height: 54dvh;
+    border-radius: 10px;
+  }
+
+  .joystick-base {
+    width: 96px;
+    height: 96px;
+  }
+
+  .joystick-knob {
+    width: 42px;
+    height: 42px;
+  }
+
+  .touch-jump-btn {
+    width: 58px;
+    height: 58px;
+    font-size: 12px;
+  }
+
+  .touch-cluster {
+    bottom: 10px;
+    gap: 7px;
+  }
+  .touch-cluster.left { left: 10px; }
+  .touch-cluster.right { right: 10px; }
+
+  .telop-text { font-size: 13px; }
+  .dock-btn { padding: 6px 8px; font-size: 11px; }
+}
+
+/* Mobile Landscape Full-Immersive Game Mode */
+@media (max-height: 500px) and (orientation: landscape) {
+  body {
+    padding: 0;
+  }
+  .app-shell {
+    max-width: 100vw;
+    gap: 0;
+  }
+  .channel-header, .telop-bar, .control-dock {
+    display: none;
+  }
+  .viewport-frame {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+    border: none;
+    border-radius: 0;
+  }
+  .restore-hud-btn {
+    display: none;
+  }
+}

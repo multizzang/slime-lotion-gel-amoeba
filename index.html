@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0e131a" />
+  <title>スライムローション ゲルアメーバー | 위치 워치 애니판 3D</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦗</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell" id="app-shell">
+    <!-- 칸니코 채널 상단 바 -->
+    <header class="channel-header hud-element">
+      <div class="channel-brand">
+        <span class="live-badge">▶ REC</span>
+        <div class="title-stack">
+          <h1>スライムローション ゲルアメーバー <span class="kr-sub">TV애니 7화 3D</span></h1>
+          <p class="creator-tag">【게임실황】 친구(마가미 케이고)가 만든 쿠소게를 해보았다 · 칸니코 채널</p>
+        </div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-pill">
+          <span class="stat-label">STAGE</span>
+          <span class="stat-val" id="ui-stage">1 / 3</span>
+        </div>
+        <div class="stat-pill danger">
+          <span class="stat-label">꼬치 즉사</span>
+          <span class="stat-val" id="ui-deaths">0</span>
+        </div>
+        <div class="stat-pill views">
+          <span class="stat-label">조회수</span>
+          <span class="stat-val" id="ui-views">15회</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">GOAL</span>
+          <span class="stat-val" id="ui-goal-count">0 / 2</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 3D 메인 게임 뷰포트 -->
+    <main class="stage-wrapper">
+      <div class="viewport-frame" id="viewport-frame">
+        <div id="three-root"></div>
+
+        <!-- 애니판 그대로: 파란 슬라임 타이틀 + 빨간 슬라임 start 버튼 (라이브 3D 배경 위!) -->
+        <div class="anime-title-overlay" id="title-overlay">
+          <div class="slime-title-svg-wrap">
+            <svg class="slime-title-svg" viewBox="0 0 920 265" xmlns="http://www.w3.org/2000/svg" aria-label="スライムローション ゲルアメーバー">
+              <defs>
+                <linearGradient id="blueSlimeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6ce4ff" stop-opacity="0.95" />
+                  <stop offset="42%" stop-color="#1ca3e8" stop-opacity="0.92" />
+                  <stop offset="100%" stop-color="#0b6ab5" stop-opacity="0.96" />
+                </linearGradient>
+                <filter id="slimeGlow" x="-15%" y="-15%" width="130%" height="140%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+                  <feOffset dx="0" dy="5" result="offsetBlur" />
+                  <feFlood flood-color="#04335c" flood-opacity="0.55" result="shadowColor" />
+                  <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="dropShadow" />
+                  <feSpecularLighting in="blur" surfaceScale="5" specularConstant="0.9" specularExponent="22" lighting-color="#d8f8ff" result="specOut">
+                    <fePointLight x="460" y="-120" z="220" />
+                  </feSpecularLighting>
+                  <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specMask" />
+                  <feMerge>
+                    <feMergeNode in="dropShadow" />
+                    <feMergeNode in="SourceGraphic" />
+                    <feMergeNode in="specMask" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <g filter="url(#slimeGlow)">
+                <text x="460" y="102" text-anchor="middle" class="slime-jp-line1" fill="url(#blueSlimeGrad)" stroke="#0d74c2" stroke-width="5" stroke-linejoin="round">スライムローション</text>
+                <text x="460" y="198" text-anchor="middle" class="slime-jp-line2" fill="url(#blueSlimeGrad)" stroke="#0d74c2" stroke-width="5" stroke-linejoin="round">ゲルアメーバー</text>
+                <path class="drip drip-1" d="M135,104 C135,126 126,138 135,146 C144,138 135,126 135,104 Z" fill="url(#blueSlimeGrad)" />
+                <path class="drip drip-2" d="M275,108 C275,134 265,150 275,158 C285,150 275,134 275,108 Z" fill="url(#blueSlimeGrad)" />
+                <path class="drip drip-3" d="M625,104 C625,132 616,144 625,152 C634,144 625,132 625,104 Z" fill="url(#blueSlimeGrad)" />
+                <path class="drip drip-4" d="M775,102 C775,124 767,138 775,146 C783,138 775,124 775,102 Z" fill="url(#blueSlimeGrad)" />
+                <path class="drip drip-5" d="M355,202 C355,228 345,244 355,252 C365,244 355,228 355,202 Z" fill="url(#blueSlimeGrad)" />
+                <path class="drip drip-6" d="M590,202 C590,232 580,248 590,256 C600,248 590,232 590,202 Z" fill="url(#blueSlimeGrad)" />
+              </g>
+            </svg>
+          </div>
+
+          <!-- 애니판 0:27 빨간 슬라임 링 + start 버튼 -->
+          <button class="red-slime-start-btn" id="btn-start" type="button" aria-label="Start Game">
+            <svg class="red-slime-svg" viewBox="0 0 340 165" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="redSlimeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ff4d4d" />
+                  <stop offset="50%" stop-color="#d91414" />
+                  <stop offset="100%" stop-color="#8c0404" />
+                </linearGradient>
+                <filter id="redGlow" x="-15%" y="-15%" width="130%" height="135%">
+                  <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#3a0000" flood-opacity="0.6" />
+                </filter>
+              </defs>
+              <g filter="url(#redGlow)">
+                <path d="M55,74 C45,38 92,16 146,24 C185,12 248,18 278,46 C306,72 292,126 248,136 C214,144 196,128 168,138 C126,152 62,142 48,108 C42,93 59,84 55,74 Z"
+                  fill="rgba(220, 18, 18, 0.16)" stroke="url(#redSlimeGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="96" cy="146" r="7" fill="url(#redSlimeGrad)" />
+                <circle cx="246" cy="148" r="6" fill="url(#redSlimeGrad)" />
+                <path d="M170,136 C170,152 162,160 170,163 C178,160 170,152 170,136 Z" fill="url(#redSlimeGrad)" />
+                <text x="170" y="96" text-anchor="middle" class="red-start-text" fill="url(#redSlimeGrad)" stroke="#680000" stroke-width="2.5">start</text>
+              </g>
+            </svg>
+          </button>
+
+          <div class="title-controls-pill">
+            <span class="desktop-only"><strong>1P:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>+<kbd>Space</kbd></span>
+            <span class="sep desktop-only">|</span>
+            <span class="desktop-only"><strong>2P:</strong> <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>+<kbd>Enter</kbd></span>
+            <span class="mobile-only">📱 <strong>모바일 지원!</strong> 양손 조이스틱 &amp; 점프 버튼으로 2마리 동시 조작!</span>
+          </div>
+        </div>
+
+        <!-- 모바일 전용 멀티터치 듀얼 조이스틱 + 점프 패드 (스마트폰 자동 활성화 / PC 토글 가능) -->
+        <div class="touch-controls hidden" id="touch-controls">
+          <!-- 상단 퀵 버튼 (모바일 가로/전체화면 편의용) -->
+          <div class="touch-top-bar">
+            <button class="touch-mini-btn" id="touch-retry" type="button">↻ 리트라이</button>
+            <button class="touch-mini-btn" id="touch-cam" type="button">🎥 시점</button>
+            <button class="touch-mini-btn" id="touch-markers" type="button">🏷️ 구분</button>
+          </div>
+
+          <!-- 왼쪽 1P 메뚜기 패드 -->
+          <div class="touch-cluster left">
+            <div class="joystick-base" id="joy-0" data-player="0">
+              <span class="joy-label">1P</span>
+              <div class="joystick-knob" id="knob-0"></div>
+            </div>
+            <button class="touch-jump-btn p1" id="jump-0" data-player="0" type="button">1P<br />점프</button>
+          </div>
+
+          <!-- 오른쪽 2P 메뚜기 패드 -->
+          <div class="touch-cluster right">
+            <button class="touch-jump-btn p2" id="jump-1" data-player="1" type="button">2P<br />점프</button>
+            <div class="joystick-base" id="joy-1" data-player="1">
+              <span class="joy-label">2P</span>
+              <div class="joystick-knob" id="knob-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 애니식 굵은 검은 테두리 흰색 텔롭 (유튜브 편집 자막 오버레이) -->
+        <div class="anime-popup-telop hidden" id="anime-popup-telop"></div>
+
+        <!-- 스테이지 클리어 오버레이 -->
+        <div class="modal-overlay hidden" id="clear-overlay">
+          <div class="modal-card">
+            <div class="modal-badge">【기적】 2마리 모두 골인!!</div>
+            <h2 id="clear-title">STAGE 1 CLEAR!</h2>
+            <p id="clear-sub" class="modal-desc">칸니코 채널 조회수가 폭등하고 있습니다!!</p>
+            <div class="modal-stats">
+              <div><span>스테이지 꼬치 횟수</span><strong id="clear-stage-deaths">0회</strong></div>
+              <div><span>누적 조회수</span><strong id="clear-views">33.7만회</strong></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-primary" id="btn-next-stage">다음 코스 ▶</button>
+              <button class="btn-secondary" id="btn-replay-stage">다시 고통받기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 올 클리어 엔딩 -->
+        <div class="modal-overlay hidden" id="ending-overlay">
+          <div class="modal-card">
+            <div class="modal-badge">🔥 100만 조회수 달성! 전설의 쿠소게 정복 🔥</div>
+            <h2>ALL STAGE CLEAR!!</h2>
+            <p class="modal-desc">
+              친구(마가미 케이고)가 만든 3D 쿠소게를 완전히 클리어했습니다!<br />
+              <span class="ending-note">…하지만 니코와 칸시는 다음 주에 바로 채널에 질려서 그만두었다고 한다.</span>
+            </p>
+            <div class="modal-stats">
+              <div><span>총 꼬치 즉사</span><strong id="end-deaths">0회</strong></div>
+              <div><span>최종 조회수</span><strong id="end-views">100만회</strong></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-primary" id="btn-restart-all">처음부터 다시 하기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 순수 애니 화면 모드일 때 복귀 버튼 -->
+        <button class="restore-hud-btn hidden" id="btn-restore-hud" title="HUD 다시 표시 (H)">UI 표시</button>
+      </div>
+
+      <!-- 칸니코 채널 실황 텔롭 바 -->
+      <section class="telop-bar hud-element speaker-kanshi" id="telop-bar" aria-live="polite">
+        <div class="speaker-avatar">
+          <span class="avatar-emoji" id="speaker-emoji">👺</span>
+          <span class="avatar-name" id="speaker-name">칸시</span>
+        </div>
+        <div class="telop-text-wrap">
+          <p class="telop-text" id="telop-text">「레드 핫 칠리 페퍼스처럼 말하지 마!! 대체 무슨 게임이야 이거!!」</p>
+          <p class="telop-editor" id="telop-editor">[편집: 모리히토] ※ TV 애니메이션 7화 3D 원작 재현 모드. PC 키보드 &amp; 스마트폰 멀티터치 완벽 지원!</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- 하단 컨트롤 도크 -->
+    <footer class="control-dock hud-element">
+      <div class="dock-group">
+        <span class="dock-label">3D 코스:</span>
+        <div class="stage-buttons" id="stage-buttons"></div>
+      </div>
+
+      <div class="dock-group">
+        <button class="dock-btn" id="btn-retry" title="즉시 재시작 (R)">↻ 리트라이</button>
+        <button class="dock-btn" id="btn-cam" title="카메라 시점 전환 (V)">🎥 <strong id="cam-state">애니 로우앵글</strong></button>
+        <button class="dock-btn" id="btn-markers" title="원작 고증은 OFF! 켜면 1P/2P 표시">🏷️ 구분: <strong id="marker-state">OFF (원작)</strong></button>
+        <button class="dock-btn" id="btn-touch-toggle" title="모바일 가상 조이스틱 켜기/끄기">📱 패드: <strong id="touch-state">AUTO</strong></button>
+        <button class="dock-btn" id="btn-pure" title="UI 숨기고 원작 애니 화면만 보기 (H)">📺 전체/애니화면</button>
+        <button class="dock-btn" id="btn-bgm">🎵 <strong id="bgm-state">ON</strong></button>
+        <button class="dock-btn" id="btn-sfx">🔊 <strong id="sfx-state">ON</strong></button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="audio.js"></script>
+  <script src="stages3d.js"></script>
+  <script src="game3d.js"></script>
+</body>
+</html>
