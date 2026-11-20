@@ -705,14 +705,15 @@
   let pureAnimeMode = false;
   let popupTimeout = null;
 
-  // Camera modes: 0 = Anime Low-Angle, 1 = 3rd-Person Follow, 2 = Free Orbit
-  const CAM_MODES = ['애니 로우앵글', '3인칭 추적', '자유 회전'];
+  // Camera modes: 0 = Anime Low-Angle, 1 = 3rd-Person Follow, 2 = High Overview
+  const CAM_MODES = ['애니 로우앵글', '3인칭 추적', '고공 시점'];
   let camMode = 0;
   let camYawOffset = 0;
   let camPitchOffset = 0;
-  let isDragging = false;
-  let lastMouseX = 0;
-  let lastMouseY = 0;
+  let camZoomOffset = 0;
+  let camDragPointerId = null;
+  let lastCamX = 0;
+  let lastCamY = 0;
   let deathZoomTarget = null;
   let deathZoomTimer = 0;
 
@@ -760,12 +761,12 @@
     if (modeStateEl) modeStateEl.textContent = playerCount === 1 ? '1인용' : '2인용(원작)';
     if (titleHintDesktop) {
       titleHintDesktop.innerHTML = playerCount === 1
-        ? '<strong>1인용:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 이동 + <kbd>Space</kbd> 점프'
+        ? '<strong>1인용:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 + <kbd>Space</kbd> 점프 + <kbd>Q</kbd><kbd>E</kbd>/드래그 시점 회전'
         : '<strong>1P:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>+<kbd>Space</kbd> · <strong>2P:</strong> <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>+<kbd>Enter</kbd>';
     }
     if (titleHintMobile) {
       titleHintMobile.innerHTML = playerCount === 1
-        ? '📱 <strong>1인용 모드:</strong> 왼손 조이스틱 이동 + 오른손 점프 버튼!'
+        ? '📱 <strong>1인용:</strong> 왼손 조이스틱 · 오른손 점프 · 빈 화면 드래그로 360° 시점 회전!'
         : '📱 <strong>2인용 원작 모드:</strong> 양손 듀얼 조이스틱 &amp; 점프 버튼으로 2마리 동시 조작!';
     }
     syncTouchControlsVisibility();
@@ -1835,30 +1836,44 @@
       spread = list[0].pos.distanceTo(list[1].pos);
     }
 
-    let baseDist = 12.2 + Math.min(14, spread * 0.58 + cy * 0.35);
-    let baseH = 3.2 + Math.min(7.5, cy * 0.78 + spread * 0.12);
+    // Smooth Q/E keyboard camera orbit in 1-player mode!
+    if (playerCount === 1 && gameState === 'playing') {
+      if (keys['KeyQ']) camYawOffset += dt * 2.1;
+      if (keys['KeyE']) camYawOffset -= dt * 2.1;
+    }
+
+    let baseDist = 12.2 + Math.min(14, spread * 0.58 + cy * 0.35) + camZoomOffset;
+    let baseH = 3.2 + Math.min(7.5, cy * 0.78 + spread * 0.12) + camPitchOffset * 10;
     let lookY = 2.1 + cy * 0.72;
 
     if (camMode === 1) {
       // 3rd-Person Follow (higher, clearer palm-top view)
-      baseDist = 15.8 + Math.min(14, spread * 0.5 + cy * 0.3);
-      baseH = 7.8 + Math.min(7.5, cy * 0.75 + spread * 0.15);
+      baseDist = 15.8 + Math.min(14, spread * 0.5 + cy * 0.3) + camZoomOffset;
+      baseH = 7.8 + Math.min(7.5, cy * 0.75 + spread * 0.15) + camPitchOffset * 10;
       lookY = 2.0 + cy * 0.65;
     } else if (camMode === 2) {
-      // Free Orbit
-      baseDist = 14.0 + Math.min(12, spread * 0.4);
-      baseH = Math.max(1.4, 5.4 + cy * 0.6 + camPitchOffset * 8);
+      // High Overview (super clear for landing on palm crowns!)
+      baseDist = 17.5 + Math.min(12, spread * 0.4) + camZoomOffset;
+      baseH = 12.5 + cy * 0.65 + camPitchOffset * 10;
+      lookY = 1.6 + cy * 0.5;
     }
+
+    baseDist = Math.max(6.5, Math.min(28, baseDist));
+    baseH = Math.max(1.3, Math.min(22, baseH));
 
     const desiredPos = new THREE.Vector3(
       cx + Math.sin(camYawOffset) * baseDist,
       baseH,
       cz + Math.cos(camYawOffset) * baseDist
     );
-    const desiredLook = new THREE.Vector3(cx, lookY, cz - 3.5);
+    const desiredLook = new THREE.Vector3(
+      cx - Math.sin(camYawOffset) * 2.4,
+      lookY,
+      cz - Math.cos(camYawOffset) * 2.4
+    );
 
-    smoothCamPos.lerp(desiredPos, Math.min(1, dt * 5.2));
-    smoothLook.lerp(desiredLook, Math.min(1, dt * 6.5));
+    smoothCamPos.lerp(desiredPos, Math.min(1, dt * 6.5));
+    smoothLook.lerp(desiredLook, Math.min(1, dt * 8.0));
 
     camera.position.copy(smoothCamPos);
     camera.lookAt(smoothLook);
@@ -1898,29 +1913,45 @@
     keys[e.code] = false;
   });
 
-  // Mouse drag to orbit/peek camera
-  renderer.domElement.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
+  // Unified Mouse + Multi-Touch 360° Camera Drag (works alongside left joystick & jump on mobile!)
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    if (camDragPointerId !== null) return;
+    camDragPointerId = e.pointerId;
+    lastCamX = e.clientX;
+    lastCamY = e.clientY;
+    if (renderer.domElement.setPointerCapture) {
+      try { renderer.domElement.setPointerCapture(e.pointerId); } catch (_) {}
+    }
   });
-  window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - lastMouseX;
-    const dy = e.clientY - lastMouseY;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-    camYawOffset -= dx * 0.008;
-    camPitchOffset = Math.max(-0.4, Math.min(0.8, camPitchOffset + dy * 0.006));
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== camDragPointerId) return;
+    const dx = e.clientX - lastCamX;
+    const dy = e.clientY - lastCamY;
+    lastCamX = e.clientX;
+    lastCamY = e.clientY;
+    camYawOffset -= dx * 0.0095;
+    camPitchOffset = Math.max(-0.55, Math.min(0.95, camPitchOffset + dy * 0.0065));
   });
-  window.addEventListener('mouseup', () => { isDragging = false; });
+  const endCamDrag = (e) => {
+    if (e.pointerId !== camDragPointerId) return;
+    camDragPointerId = null;
+  };
+  renderer.domElement.addEventListener('pointerup', endCamDrag);
+  renderer.domElement.addEventListener('pointercancel', endCamDrag);
+  renderer.domElement.addEventListener('lostpointercapture', () => {
+    camDragPointerId = null;
+  });
+
+  // Mouse wheel zoom on PC
+  renderer.domElement.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    camZoomOffset = Math.max(-5, Math.min(10, camZoomOffset + Math.sign(e.deltaY) * 1.2));
+  }, { passive: false });
 
   function cycleCamera() {
     camMode = (camMode + 1) % CAM_MODES.length;
-    if (camMode !== 2) {
-      camYawOffset = 0;
-      camPitchOffset = 0;
-    }
+    camPitchOffset = 0;
+    camZoomOffset = 0;
     camStateEl.textContent = CAM_MODES[camMode];
   }
 
