@@ -26,8 +26,16 @@
   const stageButtonsWrap = document.getElementById('stage-buttons');
   const camStateEl = document.getElementById('cam-state');
   const markerStateEl = document.getElementById('marker-state');
+  const modeStateEl = document.getElementById('mode-state');
   const touchStateEl = document.getElementById('touch-state');
   const touchControlsEl = document.getElementById('touch-controls');
+  const touchModeBtn = document.getElementById('touch-mode');
+  const joyLabel0 = document.getElementById('joy-label-0');
+  const jumpBtn1 = document.getElementById('jump-1');
+  const modeBtn1p = document.getElementById('mode-btn-1p');
+  const modeBtn2p = document.getElementById('mode-btn-2p');
+  const titleHintDesktop = document.getElementById('title-hint-desktop');
+  const titleHintMobile = document.getElementById('title-hint-mobile');
   const bgmStateEl = document.getElementById('bgm-state');
   const sfxStateEl = document.getElementById('sfx-state');
 
@@ -662,6 +670,7 @@
   // GAME STATE & LEVEL MANAGEMENT
   // =========================================================================
   let gameState = 'title'; // 'title' | 'playing' | 'stageClear' | 'ending'
+  let playerCount = 1; // 1 = 1인용 (모바일/솔로 편함), 2 = 2인용 (원작 2마리 혼돈)
   let currentStageIdx = 0;
   let clearedStages = new Set();
   let totalDeaths = 0;
@@ -705,17 +714,37 @@
     { x: 0, z: 0, jump: false, joyPointerId: null, jumpPointerIds: new Set() },
   ];
   let touchPadMode = 'auto'; // 'auto' | 'on' | 'off'
-  let isTouchDevice =
-    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
-    'ontouchstart' in window ||
-    navigator.maxTouchPoints > 0;
+  let isTouchDevice = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 
   function syncTouchControlsVisibility() {
     if (!touchControlsEl) return;
+    touchControlsEl.classList.toggle('mode-1p', playerCount === 1);
+    if (joyLabel0) joyLabel0.textContent = playerCount === 1 ? '이동' : '1P';
+    if (jumpBtn1) jumpBtn1.innerHTML = playerCount === 1 ? '점프!' : '2P<br />점프';
+    if (touchModeBtn) touchModeBtn.textContent = playerCount === 1 ? '🦗 1인용' : '🦗🦗 2인용';
     const shouldShow =
       gameState === 'playing' &&
       (touchPadMode === 'on' || (touchPadMode === 'auto' && isTouchDevice));
     touchControlsEl.classList.toggle('hidden', !shouldShow);
+  }
+
+  function setPlayerMode(count) {
+    playerCount = count === 2 ? 2 : 1;
+    if (modeBtn1p) modeBtn1p.classList.toggle('active', playerCount === 1);
+    if (modeBtn2p) modeBtn2p.classList.toggle('active', playerCount === 2);
+    if (modeStateEl) modeStateEl.textContent = playerCount === 1 ? '1인용' : '2인용(원작)';
+    if (titleHintDesktop) {
+      titleHintDesktop.innerHTML = playerCount === 1
+        ? '<strong>1인용:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 이동 + <kbd>Space</kbd> 점프'
+        : '<strong>1P:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>+<kbd>Space</kbd> · <strong>2P:</strong> <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>+<kbd>Enter</kbd>';
+    }
+    if (titleHintMobile) {
+      titleHintMobile.innerHTML = playerCount === 1
+        ? '📱 <strong>1인용 모드:</strong> 왼손 조이스틱 이동 + 오른손 점프 버튼!'
+        : '📱 <strong>2인용 원작 모드:</strong> 양손 듀얼 조이스틱 &amp; 점프 버튼으로 2마리 동시 조작!';
+    }
+    syncTouchControlsVisibility();
+    loadStage(currentStageIdx, gameState === 'playing');
   }
 
   function setupTouchGamepad() {
@@ -817,6 +846,12 @@
         if (gameState === 'playing') loadStage(currentStageIdx, false);
       });
     }
+    if (touchModeBtn) {
+      touchModeBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        setPlayerMode(playerCount === 1 ? 2 : 1);
+      });
+    }
     if (tCam) {
       tCam.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
@@ -878,7 +913,7 @@
     uiDeaths.textContent = `${totalDeaths}`;
     uiViews.textContent = formatViews(views);
     const goalCount = grasshoppers.filter((g) => g.inGoal).length;
-    uiGoalCount.textContent = `${goalCount} / 2`;
+    uiGoalCount.textContent = `${goalCount} / ${playerCount}`;
   }
 
   function buildStageButtons() {
@@ -1053,11 +1088,17 @@
     goalObj = buildGoalArch(stageData.goal);
     stageGroup.add(goalObj.mesh);
 
-    // Spawn the 2 identical 3D grasshoppers!
-    grasshoppers = [
-      createGrasshopperEntity(0, stageData.spawns[0]),
-      createGrasshopperEntity(1, stageData.spawns[1]),
-    ];
+    // Spawn 1 grasshopper (1P mode) OR 2 identical 3D grasshoppers (2P original anime mode!)
+    if (playerCount === 1) {
+      grasshoppers = [
+        createGrasshopperEntity(0, { x: 0, z: stageData.spawns[0].z }),
+      ];
+    } else {
+      grasshoppers = [
+        createGrasshopperEntity(0, stageData.spawns[0]),
+        createGrasshopperEntity(1, stageData.spawns[1]),
+      ];
+    }
 
     if (gameState !== 'title') {
       gameState = 'playing';
@@ -1191,6 +1232,18 @@
   }
 
   function getControls(idx) {
+    if (playerCount === 1) {
+      const ti0 = touchInput[0];
+      const ti1 = touchInput[1];
+      const kx = ((keys['KeyD'] || keys['ArrowRight']) ? 1 : 0) - ((keys['KeyA'] || keys['ArrowLeft']) ? 1 : 0);
+      const kz = ((keys['KeyS'] || keys['ArrowDown']) ? 1 : 0) - ((keys['KeyW'] || keys['ArrowUp']) ? 1 : 0);
+      return {
+        x: Math.abs(ti0.x) > 0.01 ? ti0.x : kx,
+        z: Math.abs(ti0.z) > 0.01 ? ti0.z : kz,
+        jump: !!(keys['Space'] || keys['Enter'] || keys['ShiftLeft'] || keys['ShiftRight'] || ti0.jump || ti1.jump),
+      };
+    }
+
     const ti = touchInput[idx];
     if (idx === 0) {
       const kx = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
@@ -1528,43 +1581,45 @@
         g.root.visible = false;
         const count = grasshoppers.filter((h) => h.inGoal).length;
         updateHud();
-        if (count === 1) {
-          window.kusogeAudio.playGoalOne();
-          triggerCommentary('goalOne', true);
-        } else if (count === 2) {
+        if (count >= playerCount) {
           triggerStageClear();
           return;
+        } else if (count === 1) {
+          window.kusogeAudio.playGoalOne();
+          triggerCommentary('goalOne', true);
         }
       }
     }
 
     // --- INSECT SUMO (곤충 대스모) GRASSHOPPER-TO-GRASSHOPPER COLLISION ---
-    const g0 = grasshoppers[0];
-    const g1 = grasshoppers[1];
-    if (g0.alive && g1.alive && !g0.inGoal && !g1.inGoal) {
-      const dx = g0.pos.x - g1.pos.x;
-      const dy = g0.pos.y - g1.pos.y;
-      const dz = g0.pos.z - g1.pos.z;
-      const dist = Math.hypot(dx, dy, dz);
-      if (dist < 1.55) {
-        const nx = dx / (dist || 1);
-        const nz = dz / (dist || 1);
-        const sep = (1.58 - dist) * 0.5;
-        g0.pos.x += nx * sep;
-        g0.pos.z += nz * sep;
-        g1.pos.x -= nx * sep;
-        g1.pos.z -= nz * sep;
-        if (g0.sumoCooldown <= 0 && g1.sumoCooldown <= 0) {
-          g0.vx = nx * 11.5;
-          g0.vz = nz * 11.5;
-          g0.vy = Math.max(g0.vy, 5.2);
-          g1.vx = -nx * 11.5;
-          g1.vz = -nz * 11.5;
-          g1.vy = Math.max(g1.vy, 5.2);
-          g0.sumoCooldown = 0.35;
-          g1.sumoCooldown = 0.35;
-          window.kusogeAudio.playSumoBump();
-          triggerCommentary('sumo', true);
+    if (grasshoppers.length >= 2) {
+      const g0 = grasshoppers[0];
+      const g1 = grasshoppers[1];
+      if (g0.alive && g1.alive && !g0.inGoal && !g1.inGoal) {
+        const dx = g0.pos.x - g1.pos.x;
+        const dy = g0.pos.y - g1.pos.y;
+        const dz = g0.pos.z - g1.pos.z;
+        const dist = Math.hypot(dx, dy, dz);
+        if (dist < 1.55) {
+          const nx = dx / (dist || 1);
+          const nz = dz / (dist || 1);
+          const sep = (1.58 - dist) * 0.5;
+          g0.pos.x += nx * sep;
+          g0.pos.z += nz * sep;
+          g1.pos.x -= nx * sep;
+          g1.pos.z -= nz * sep;
+          if (g0.sumoCooldown <= 0 && g1.sumoCooldown <= 0) {
+            g0.vx = nx * 11.5;
+            g0.vz = nz * 11.5;
+            g0.vy = Math.max(g0.vy, 5.2);
+            g1.vx = -nx * 11.5;
+            g1.vz = -nz * 11.5;
+            g1.vy = Math.max(g1.vy, 5.2);
+            g0.sumoCooldown = 0.35;
+            g1.sumoCooldown = 0.35;
+            window.kusogeAudio.playSumoBump();
+            triggerCommentary('sumo', true);
+          }
         }
       }
     }
@@ -1767,6 +1822,10 @@
   document.getElementById('btn-pure').addEventListener('click', togglePureAnimeMode);
   restoreHudBtn.addEventListener('click', togglePureAnimeMode);
   document.getElementById('btn-markers').addEventListener('click', toggleMarkers);
+  const btnMode = document.getElementById('btn-mode');
+  if (btnMode) btnMode.addEventListener('click', () => setPlayerMode(playerCount === 1 ? 2 : 1));
+  if (modeBtn1p) modeBtn1p.addEventListener('click', () => setPlayerMode(1));
+  if (modeBtn2p) modeBtn2p.addEventListener('click', () => setPlayerMode(2));
   const btnTouchToggle = document.getElementById('btn-touch-toggle');
   if (btnTouchToggle) btnTouchToggle.addEventListener('click', cycleTouchPad);
 

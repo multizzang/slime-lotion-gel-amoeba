@@ -302,6 +302,49 @@ body {
 .title-controls-pill .sep { opacity: 0.45; }
 .mobile-only { display: none; }
 
+/* 1P / 2P Mode Selector on Title Screen */
+.mode-selector {
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+  background: rgba(8, 16, 28, 0.72);
+  backdrop-filter: blur(6px);
+  padding: 5px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+}
+
+.mode-pill {
+  background: transparent;
+  color: #dce9fa;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.mode-pill.active {
+  background: linear-gradient(180deg, #42e8ff 0%, #0ea8db 100%);
+  color: #031c29;
+  box-shadow: 0 3px 10px rgba(27, 212, 255, 0.45);
+}
+
+/* 1-Player Touch Layout: Left = 1 big joystick, Right = 1 big Jump button! */
+.touch-controls.mode-1p #jump-0,
+.touch-controls.mode-1p #joy-1 {
+  display: none;
+}
+
+.touch-controls.mode-1p #jump-1 {
+  width: 84px;
+  height: 84px;
+  font-size: 16px;
+  background: radial-gradient(circle at 35% 30%, #ff8599 0%, #e11d48 100%);
+}
+
 kbd {
   display: inline-block;
   background: #243144;

@@ -87,6 +87,12 @@
             </svg>
           </div>
 
+          <!-- 1인용 / 2인용 모드 선택 -->
+          <div class="mode-selector" id="title-mode-selector">
+            <button class="mode-pill active" id="mode-btn-1p" data-mode="1" type="button">🦗 1인용 (혼자서 편하게)</button>
+            <button class="mode-pill" id="mode-btn-2p" data-mode="2" type="button">🦗🦗 2인용 (원작 2마리 혼돈)</button>
+          </div>
+
           <!-- 애니판 0:27 빨간 슬라임 링 + start 버튼 -->
           <button class="red-slime-start-btn" id="btn-start" type="button" aria-label="Start Game">
             <svg class="red-slime-svg" viewBox="0 0 340 165" xmlns="http://www.w3.org/2000/svg">
@@ -111,35 +117,34 @@
             </svg>
           </button>
 
-          <div class="title-controls-pill">
-            <span class="desktop-only"><strong>1P:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>+<kbd>Space</kbd></span>
-            <span class="sep desktop-only">|</span>
-            <span class="desktop-only"><strong>2P:</strong> <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>+<kbd>Enter</kbd></span>
-            <span class="mobile-only">📱 <strong>모바일 지원!</strong> 양손 조이스틱 &amp; 점프 버튼으로 2마리 동시 조작!</span>
+          <div class="title-controls-pill" id="title-controls-pill">
+            <span class="desktop-only" id="title-hint-desktop"><strong>1인용:</strong> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 이동 + <kbd>Space</kbd> 점프</span>
+            <span class="mobile-only" id="title-hint-mobile">📱 <strong>1인용 모드:</strong> 왼손 조이스틱 이동 + 오른손 점프 버튼!</span>
           </div>
         </div>
 
-        <!-- 모바일 전용 멀티터치 듀얼 조이스틱 + 점프 패드 (스마트폰 자동 활성화 / PC 토글 가능) -->
+        <!-- 모바일 전용 멀티터치 패드 (1인용: 왼손 스틱 + 오른손 점프 / 2인용: 양손 듀얼 패드) -->
         <div class="touch-controls hidden" id="touch-controls">
-          <!-- 상단 퀵 버튼 (모바일 가로/전체화면 편의용) -->
+          <!-- 상단 퀵 버튼 -->
           <div class="touch-top-bar">
             <button class="touch-mini-btn" id="touch-retry" type="button">↻ 리트라이</button>
+            <button class="touch-mini-btn" id="touch-mode" type="button">🦗 1인용</button>
             <button class="touch-mini-btn" id="touch-cam" type="button">🎥 시점</button>
             <button class="touch-mini-btn" id="touch-markers" type="button">🏷️ 구분</button>
           </div>
 
-          <!-- 왼쪽 1P 메뚜기 패드 -->
+          <!-- 왼쪽 패드 (1P 스틱 + 2인용일 때 1P 점프) -->
           <div class="touch-cluster left">
             <div class="joystick-base" id="joy-0" data-player="0">
-              <span class="joy-label">1P</span>
+              <span class="joy-label" id="joy-label-0">이동</span>
               <div class="joystick-knob" id="knob-0"></div>
             </div>
             <button class="touch-jump-btn p1" id="jump-0" data-player="0" type="button">1P<br />점프</button>
           </div>
 
-          <!-- 오른쪽 2P 메뚜기 패드 -->
+          <!-- 오른쪽 패드 (1인용일 때 대형 점프 버튼 / 2인용일 때 2P 점프 + 2P 스틱) -->
           <div class="touch-cluster right">
-            <button class="touch-jump-btn p2" id="jump-1" data-player="1" type="button">2P<br />점프</button>
+            <button class="touch-jump-btn p2" id="jump-1" data-player="1" type="button">점프!</button>
             <div class="joystick-base" id="joy-1" data-player="1">
               <span class="joy-label">2P</span>
               <div class="joystick-knob" id="knob-1"></div>
@@ -211,6 +216,7 @@
       </div>
 
       <div class="dock-group">
+        <button class="dock-btn" id="btn-mode" title="1인용 / 2인용(원작) 전환">🦗 모드: <strong id="mode-state">1인용</strong></button>
         <button class="dock-btn" id="btn-retry" title="즉시 재시작 (R)">↻ 리트라이</button>
         <button class="dock-btn" id="btn-cam" title="카메라 시점 전환 (V)">🎥 <strong id="cam-state">애니 로우앵글</strong></button>
         <button class="dock-btn" id="btn-markers" title="원작 고증은 OFF! 켜면 1P/2P 표시">🏷️ 구분: <strong id="marker-state">OFF (원작)</strong></button>
