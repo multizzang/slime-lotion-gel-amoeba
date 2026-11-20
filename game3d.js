@@ -284,6 +284,9 @@
   const matGoldRim = new THREE.MeshPhongMaterial({ color: 0xffae00, emissive: 0x442200, shininess: 100 });
   const matCoinBeam = new THREE.MeshBasicMaterial({ color: 0xffe45e, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false });
   const matSparkGold = new THREE.MeshBasicMaterial({ color: 0xffe84a });
+  const matSafePad = new THREE.MeshLambertMaterial({ color: 0x35d448, flatShading: true });
+  const matSafePadRim = new THREE.MeshLambertMaterial({ color: 0x1e8f2c, flatShading: true });
+  const matWallBand = new THREE.MeshLambertMaterial({ color: 0xa66a32, flatShading: true });
 
   const geoBloodCube = new THREE.BoxGeometry(0.19, 0.19, 0.19);
   const geoBloodDrop = new THREE.SphereGeometry(0.11, 5, 5);
@@ -347,10 +350,10 @@
     group.position.set(cfg.x, 0, cfg.z);
     group.rotation.y = cfg.rotY || 0;
 
-    // 1. Thick faceted brown octagonal/hexagonal tapered trunk
-    const trunkH = 7.6 * s;
+    // 1. Thick faceted brown octagonal/hexagonal tapered trunk (height 7.2*s for crisp wall-jump reach!)
+    const trunkH = 7.2 * s;
     const trunkTopR = 0.64 * s;
-    const trunkBotR = 1.15 * s;
+    const trunkBotR = 1.12 * s;
     const trunk = new THREE.Mesh(
       new THREE.CylinderGeometry(trunkTopR, trunkBotR, trunkH, 6),
       matTrunk
@@ -360,18 +363,25 @@
     trunk.receiveShadow = true;
     group.add(trunk);
 
-    // 2. White conical spikes sticking out all around the LOWER 1/3 of the trunk!
-    // Slightly tightened height (y = 0.55..2.25) so jumping onto the smooth middle trunk for Wall-Jump feels super fair!
-    const spikeRings = [0.55, 1.15, 1.75, 2.22];
+    // Subtle lighter wood grip band on the safe middle trunk so players instantly spot the Wall-Jump zone!
+    const wallBand = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.84 * s, 0.94 * s, 1.9 * s, 6),
+      matWallBand
+    );
+    wallBand.position.y = 3.55 * s;
+    group.add(wallBand);
+
+    // 2. White conical spikes sticking out all around the LOWER trunk (y = 0.45..1.95 -> easy to jump over!)
+    const spikeRings = [0.48, 1.05, 1.62];
     spikeRings.forEach((ry, ringIdx) => {
       const count = 6;
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2 + ringIdx * 0.52;
-        const t = ry / 7.6;
+        const t = ry / 7.2;
         const rAtY = (trunkBotR * (1 - t) + trunkTopR * t) * 0.94;
         const sp = new THREE.Mesh(geoSpike, matSpike);
-        sp.scale.setScalar(s * (0.9 + (i % 2) * 0.2));
-        sp.position.set(Math.cos(a) * (rAtY + 0.25 * s), ry * s, Math.sin(a) * (rAtY + 0.25 * s));
+        sp.scale.setScalar(s * (0.88 + (i % 2) * 0.18));
+        sp.position.set(Math.cos(a) * (rAtY + 0.22 * s), ry * s, Math.sin(a) * (rAtY + 0.22 * s));
         sp.rotation.z = -Math.PI / 2;
         sp.rotation.y = -a;
         sp.castShadow = true;
@@ -422,13 +432,13 @@
       z: cfg.z,
       scale: s,
       hasCoin: !!cfg.hasCoin,
-      trunkSpikeR: 1.24 * s,
-      trunkSpikeYMax: 2.38 * s,
+      trunkSpikeR: 1.18 * s,
+      trunkSpikeYMax: 1.92 * s,
       trunkSolidR: 0.96 * s,
       trunkH,
-      frondR: 4.05 * s,
-      frondYMin: 6.2 * s,
-      frondYMax: 7.45 * s,
+      frondR: 3.95 * s,
+      frondYMin: 5.95 * s,
+      frondYMax: 6.85 * s,
     };
   }
 
@@ -437,10 +447,10 @@
     const s = cfg.scale || 1;
     group.position.set(cfg.x, 0, cfg.z);
 
-    // 1. Thick pale cream stem
-    const stemH = 3.95 * s;
+    // 1. Stepping-friendly pale cream stem (height 2.75*s so single jump cleanly lands on the bouncy red top!)
+    const stemH = 2.75 * s;
     const stem = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.48 * s, 0.72 * s, stemH, 8),
+      new THREE.CylinderGeometry(0.46 * s, 0.68 * s, stemH, 8),
       matMushStem
     );
     stem.position.y = stemH / 2;
@@ -448,32 +458,29 @@
     stem.receiveShadow = true;
     group.add(stem);
 
-    // Spikes around the lower stem
-    for (let ring = 0; ring < 2; ring++) {
-      const ry = (0.55 + ring * 0.65) * s;
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + ring * 0.5;
-        const sp = new THREE.Mesh(geoSmallSpike, matSpike);
-        sp.scale.setScalar(s * 0.95);
-        sp.position.set(Math.cos(a) * 0.78 * s, ry, Math.sin(a) * 0.78 * s);
-        sp.rotation.z = -Math.PI / 2;
-        sp.rotation.y = -a;
-        group.add(sp);
-      }
+    // Spikes around the very base of the stem
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const sp = new THREE.Mesh(geoSmallSpike, matSpike);
+      sp.scale.setScalar(s * 0.85);
+      sp.position.set(Math.cos(a) * 0.72 * s, 0.55 * s, Math.sin(a) * 0.72 * s);
+      sp.rotation.z = -Math.PI / 2;
+      sp.rotation.y = -a;
+      group.add(sp);
     }
 
-    // 2. Giant tilted red-top / pale-cream-underside cap
+    // 2. Giant slightly tilted red-top / pale-cream-underside cap
     const capGroup = new THREE.Group();
-    capGroup.position.y = stemH - 0.1 * s;
-    capGroup.rotation.x = cfg.tiltX || 0.12;
-    capGroup.rotation.z = cfg.tiltZ || -0.14;
+    capGroup.position.y = stemH - 0.08 * s;
+    capGroup.rotation.x = cfg.tiltX || 0.06;
+    capGroup.rotation.z = cfg.tiltZ || -0.06;
 
     const capR = 3.05 * s;
     const capDome = new THREE.Mesh(
       new THREE.SphereGeometry(capR, 14, 9, 0, Math.PI * 2, 0, Math.PI * 0.46),
       matMushCap
     );
-    capDome.scale.set(1, 0.58, 1);
+    capDome.scale.set(1, 0.52, 1);
     capDome.castShadow = true;
     capGroup.add(capDome);
 
@@ -482,12 +489,12 @@
     capUnder.position.y = 0.08 * s;
     capGroup.add(capUnder);
 
-    // White conical spikes all around the yellow cap underside & rim (exact match to step_106_shot_8.png!)
+    // White conical spikes all around the yellow cap underside
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;
-      const rr = (i % 2 === 0 ? 2.55 : 1.75) * s;
+      const rr = (i % 2 === 0 ? 2.5 : 1.7) * s;
       const csp = new THREE.Mesh(geoSmallSpike, matSpike);
-      csp.scale.setScalar(s * 0.85);
+      csp.scale.setScalar(s * 0.82);
       csp.position.set(Math.cos(a) * rr, -0.18 * s, Math.sin(a) * rr);
       csp.rotation.x = Math.PI;
       capGroup.add(csp);
@@ -501,14 +508,28 @@
       x: cfg.x,
       z: cfg.z,
       scale: s,
-      stemSpikeR: 0.95 * s,
-      stemSpikeYMax: 1.65 * s,
-      stemSolidR: 0.65 * s,
+      stemSpikeR: 0.88 * s,
+      stemSpikeYMax: 1.05 * s,
+      stemSolidR: 0.62 * s,
       capR: capR * 0.95,
-      capYMin: 2.9 * s,
-      capYMid: 4.15 * s,
-      capYTop: 5.25 * s,
+      capYMin: 1.95 * s,
+      capYMid: 2.85 * s,
+      capYTop: 3.72 * s,
     };
+  }
+
+  // Dry, grippy green mossy safe island floating slightly above the cyan slime!
+  function buildSafePad(cfg) {
+    const g = new THREE.Group();
+    g.position.set(cfg.x, 0, cfg.z);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(cfg.r, cfg.r * 1.08, 0.24, 14), matSafePadRim);
+    rim.position.y = 0.12;
+    rim.receiveShadow = true;
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(cfg.r * 0.94, cfg.r * 0.98, 0.12, 14), matSafePad);
+    top.position.y = 0.26;
+    top.receiveShadow = true;
+    g.add(rim, top);
+    return { mesh: g, x: cfg.x, z: cfg.z, r: cfg.r, topY: 0.32 };
   }
 
   function buildGrassTuft(x, z) {
@@ -701,6 +722,7 @@
   let stageData = null;
   let palms = [];
   let mushrooms = [];
+  let safePads = [];
   let coins = [];
   let grasshoppers = [];
   let bloodParticles = [];
@@ -1049,11 +1071,15 @@
       vz: 0,
       yaw: 0, // 0 faces -Z into the palm forest
       grounded: true,
+      onGrippySurface: false,
       coyote: 0,
       jumpBuf: 0,
       wallCoyote: 0,
       wallNx: 0,
       wallNz: 0,
+      wallPalm: null,
+      wallJumpGrace: 0,
+      wallJumpPalm: null,
       wallSparkTimer: 0,
       sumoCooldown: 0,
       stepSfxTimer: 0,
@@ -1074,6 +1100,7 @@
 
     palms = [];
     mushrooms = [];
+    safePads = [];
     coins = [];
     bloodParticles = [];
     bloodPuddles = [];
@@ -1081,6 +1108,13 @@
     bothDeadTimer = 0;
     deathZoomTarget = null;
     deathZoomTimer = 0;
+
+    // Build Safe Grippy Green Moss Islands!
+    for (const spc of (stageData.safePads || [])) {
+      const sp = buildSafePad(spc);
+      stageGroup.add(sp.mesh);
+      safePads.push(sp);
+    }
 
     // Build Spiked Palm Trees & place Golden Coins on top of coin palms!
     for (const pc of stageData.palms) {
@@ -1293,16 +1327,17 @@
   }
 
   // =========================================================================
-  // PHYSICS & UPDATE LOOP (Cyan Slime Skating + Palm Wall-Jump + Treetop Coins!)
+  // PHYSICS & UPDATE LOOP (Cyan Slime Skating + Safe Moss Pads + Palm Wall-Jump!)
   // =========================================================================
   const GRAVITY = 31;
-  const JUMP_VY = 16.2;         // Reaches ~4.23 units -> clears lower trunk spikes cleanly to wall-jump!
-  const WALL_JUMP_VY = 17.8;    // Wall-jump off smooth brown trunk rockets above palm fronds (~8.8 units)!
-  const WALL_JUMP_PUSH = 7.4;   // Gently kicks outward past frond spikes so you can arc onto the crown!
+  const JUMP_VY = 16.8;         // Reaches ~4.55 units -> easily clears lower trunk spikes AND lands on red mushrooms!
+  const WALL_JUMP_VY = 18.2;    // Wall-jump rockets cleanly above palm crowns (~8.8+ units)!
+  const WALL_JUMP_PUSH = 10.6;  // Cleanly clears the palm's own frond edge so you can curve onto the crown!
   const SLIME_ACCEL = 19.5;
   const SLIME_MAX_SPD = 14.5;
-  const SLIME_FRICTION = 0.985; // Ultra-slippery cyan slime skating!
-  const AIR_ACCEL = 16.0;       // Responsive air-steering for curving onto palm crowns after wall-jump!
+  const SLIME_FRICTION = 0.984; // Ultra-slippery cyan slime skating!
+  const GRIP_FRICTION = 0.84;   // Crisp grippy friction on Safe Moss Pads & Palm Tree Crowns!
+  const AIR_ACCEL = 17.5;       // Responsive air control for curving onto palm crowns after wall-jump!
 
   function update(dt) {
     globalTime += dt;
@@ -1430,9 +1465,10 @@
 
       if (g.sumoCooldown > 0) g.sumoCooldown -= dt;
       if (g.wallCoyote > 0) g.wallCoyote = Math.max(0, g.wallCoyote - dt);
+      if (g.wallJumpGrace > 0) g.wallJumpGrace = Math.max(0, g.wallJumpGrace - dt);
       if (g.wallSparkTimer > 0) g.wallSparkTimer = Math.max(0, g.wallSparkTimer - dt);
       g.coyote = g.grounded ? 0.1 : Math.max(0, g.coyote - dt);
-      g.jumpBuf = jumpJustPressed ? 0.12 : Math.max(0, g.jumpBuf - dt);
+      g.jumpBuf = jumpJustPressed ? 0.13 : Math.max(0, g.jumpBuf - dt);
 
       // Move input relative to world/camera yaw (supports both keyboard & analog mobile joystick!)
       let inX = ctrl.x;
@@ -1448,19 +1484,21 @@
         const wx = inX * cosY + inZ * sinY;
         const wz = -inX * sinY + inZ * cosY;
 
-        const acc = g.grounded ? SLIME_ACCEL : AIR_ACCEL;
+        const acc = g.grounded ? (g.onGrippySurface ? 32.0 : SLIME_ACCEL) : AIR_ACCEL;
         g.vx += wx * acc * dt;
         g.vz += wz * acc * dt;
       }
 
-      // Ultra-slippery cyan slime lotion friction!
-      const fric = Math.pow(g.grounded ? SLIME_FRICTION : 0.988, dt * 60);
+      // Slippery cyan slime floor vs. grippy Safe Moss Pads & Palm Tree Crowns!
+      const baseFric = g.grounded ? (g.onGrippySurface ? GRIP_FRICTION : SLIME_FRICTION) : 0.985;
+      const fric = Math.pow(baseFric, dt * 60);
       g.vx *= fric;
       g.vz *= fric;
 
       const horizSpd = Math.hypot(g.vx, g.vz);
-      if (horizSpd > SLIME_MAX_SPD) {
-        const s = SLIME_MAX_SPD / horizSpd;
+      const maxSpd = g.grounded && g.onGrippySurface ? 10.5 : SLIME_MAX_SPD;
+      if (horizSpd > maxSpd) {
+        const s = maxSpd / horizSpd;
         g.vx *= s;
         g.vz *= s;
       }
@@ -1471,11 +1509,11 @@
         let diff = targetYaw - g.yaw;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        g.yaw += diff * Math.min(1, dt * 7.5);
+        g.yaw += diff * Math.min(1, dt * 8.0);
       }
 
-      // Slime skating splash particles & wet squelch SFX (only on cyan slime floor)
-      if (g.grounded && g.pos.y < 0.2 && horizSpd > 3.2) {
+      // Slime skating splash particles & wet squelch SFX (only when sliding on cyan slime!)
+      if (g.grounded && !g.onGrippySurface && horizSpd > 3.2) {
         g.stepSfxTimer -= dt;
         if (g.stepSfxTimer <= 0) {
           g.stepSfxTimer = 0.15;
@@ -1487,27 +1525,29 @@
       // Jump OR Palm-Trunk WALL-JUMP!
       if (g.jumpBuf > 0) {
         if (g.coyote > 0) {
-          // Normal ground / palm-crown jump
           g.vy = JUMP_VY;
           g.grounded = false;
+          g.onGrippySurface = false;
           g.coyote = 0;
           g.jumpBuf = 0;
-          g.tumbleX = (Math.random() - 0.5) * 2.6;
-          g.tumbleZ = (Math.random() - 0.5) * 3.0;
+          g.tumbleX = (Math.random() - 0.5) * 2.2;
+          g.tumbleZ = (Math.random() - 0.5) * 2.5;
           window.kusogeAudio.playJump();
           if (g.pos.y < 0.2) spawnSlimeSplash(g.pos.x, g.pos.z);
         } else if (g.wallCoyote > 0) {
-          // PALM TRUNK WALL-JUMP!! (야자수 기둥 벽점프!)
+          // PALM TRUNK WALL-JUMP!! Cleanly clears this tree's own underside spikes!
           g.vy = WALL_JUMP_VY;
           g.vx = g.wallNx * WALL_JUMP_PUSH;
           g.vz = g.wallNz * WALL_JUMP_PUSH;
+          g.wallJumpGrace = 0.46; // Protects against self-impalement on the palm you just kicked off!
+          g.wallJumpPalm = g.wallPalm;
           g.wallCoyote = 0;
           g.jumpBuf = 0;
-          g.tumbleX = (Math.random() - 0.5) * 2.2;
-          g.tumbleZ = (Math.random() - 0.5) * 2.2;
+          g.tumbleX = (Math.random() - 0.5) * 1.8;
+          g.tumbleZ = (Math.random() - 0.5) * 1.8;
           wallJumpCount++;
           window.kusogeAudio.playWallJump();
-          spawnSparkBurst(g.pos.clone().add(new THREE.Vector3(0, 0.7, 0)), 10, matSparkGold);
+          spawnSparkBurst(g.pos.clone().add(new THREE.Vector3(0, 0.7, 0)), 12, matSparkGold);
           if (wallJumpCount === 1 || wallJumpCount % 4 === 0) {
             triggerCommentary('wallJump', true);
           }
@@ -1516,7 +1556,7 @@
 
       // Early release cuts jump height slightly for fine landing control
       if (jumpJustReleased && g.vy > 6.5) {
-        g.vy *= 0.54;
+        g.vy *= 0.56;
       }
 
       // Gravity & integrate
@@ -1525,60 +1565,80 @@
       g.pos.y += g.vy * dt;
       g.pos.z += g.vz * dt;
 
-      // Ground collision (cyan slime plain at y = 0)
+      // Ground & Safe Moss Island landing
       g.grounded = false;
-      if (g.pos.y <= 0) {
+      g.onGrippySurface = false;
+
+      // Check Safe Moss Islands first (y = 0.32, grippy!)
+      for (const sp of safePads) {
+        if (Math.hypot(g.pos.x - sp.x, g.pos.z - sp.z) < sp.r && g.pos.y <= sp.topY + 0.15 && g.vy <= 0.5) {
+          g.pos.y = sp.topY;
+          g.vy = 0;
+          g.grounded = true;
+          g.onGrippySurface = true;
+          g.tumbleX = 0;
+          g.tumbleZ = 0;
+          break;
+        }
+      }
+
+      // Cyan slime floor at y = 0
+      if (!g.grounded && g.pos.y <= 0) {
         g.pos.y = 0;
         g.vy = 0;
         g.grounded = true;
+        g.onGrippySurface = false;
         g.tumbleX = 0;
         g.tumbleZ = 0;
       }
 
-      // Arena perimeter soft bounce (rolling green hills edge)
+      // Arena perimeter soft bounce
       const arenaLimX = 34;
       if (g.pos.x < -arenaLimX) { g.pos.x = -arenaLimX; g.vx = Math.abs(g.vx) * 0.6; }
       if (g.pos.x > arenaLimX) { g.pos.x = arenaLimX; g.vx = -Math.abs(g.vx) * 0.6; }
       if (g.pos.z > 28) { g.pos.z = 28; g.vz = -Math.abs(g.vz) * 0.6; }
       if (g.pos.z < -46) { g.pos.z = -46; g.vz = Math.abs(g.vz) * 0.6; }
 
-      // --- COLLISION: SPIKED PALM TREES (Lower Spikes / Safe Wall-Jump Trunk / Safe Crown Top / Spiked Frond Underside!) ---
+      // --- COLLISION: SPIKED PALM TREES (Lower Spikes / Safe Wall-Jump Trunk / Safe Grippy Crown / Spiked Underside!) ---
       const hopperY = g.pos.y + 0.65;
       for (const p of palms) {
         const dx = g.pos.x - p.x;
         const dz = g.pos.z - p.z;
         const dist = Math.hypot(dx, dz);
 
-        // 1. Safe Landing on TOP of the Palm Tree Crown / Green Leaves! (Grab the Coin!)
+        // 1. Safe GRIPPY Landing on TOP of the Palm Tree Crown / Green Leaves!
         const crownTopY = p.trunkH + 0.05;
-        if (dist < p.frondR * 0.88 && g.vy <= 1.2 && g.pos.y <= crownTopY + 0.35 && g.pos.y >= crownTopY - 0.85) {
+        if (dist < p.frondR * 0.96 && g.vy <= 2.4 && g.pos.y <= crownTopY + 0.45 && g.pos.y >= crownTopY - 1.1) {
           g.pos.y = crownTopY;
           g.vy = 0;
           g.grounded = true;
+          g.onGrippySurface = true; // Grippy leaves so you never slip off after landing!
           g.tumbleX = 0;
           g.tumbleZ = 0;
           continue;
         }
 
-        // 2. High-altitude spiked palm frond UNDERSIDE (only impales if rising straight up into underside spikes!)
+        // 2. High-altitude spiked palm frond UNDERSIDE (skipped during clean Wall-Jump escape off THIS palm!)
+        const isSelfWallJump = g.wallJumpGrace > 0 && g.wallJumpPalm === p;
         if (
-          dist > p.trunkSolidR + 0.35 &&
-          dist < p.frondR * 0.9 &&
-          g.vy > 0.6 &&
+          !isSelfWallJump &&
+          dist > p.trunkSolidR + 0.55 &&
+          dist < p.frondR * 0.82 &&
+          g.vy > 1.2 &&
           hopperY >= p.frondYMin &&
-          hopperY <= p.frondYMax - 0.35
+          hopperY <= p.frondYMax - 0.25
         ) {
-          killGrasshopper(g, 'palmFrond', new THREE.Vector3(g.pos.x, Math.min(p.frondYMax - 0.25, hopperY), g.pos.z), p);
+          killGrasshopper(g, 'palmFrond', new THREE.Vector3(g.pos.x, Math.min(p.frondYMax - 0.2, hopperY), g.pos.z), p);
           break;
         }
 
-        // 3. Lower spiked trunk (impales if you don't jump above the white spikes!)
-        if (dist < p.trunkSpikeR + 0.45 && hopperY <= p.trunkSpikeYMax) {
+        // 3. Lower spiked trunk (impales only if you hit the low white spikes!)
+        if (dist < p.trunkSpikeR + 0.4 && hopperY <= p.trunkSpikeYMax) {
           const normX = dx / (dist || 1);
           const normZ = dz / (dist || 1);
           const pinPos = new THREE.Vector3(
             p.x + normX * (p.trunkSpikeR + 0.22),
-            Math.max(0.85, hopperY),
+            Math.max(0.75, hopperY),
             p.z + normZ * (p.trunkSpikeR + 0.22)
           );
           killGrasshopper(g, 'trunkPin', pinPos, p);
@@ -1586,21 +1646,21 @@
         }
 
         // 4. SAFE SMOOTH BROWN MIDDLE/UPPER TRUNK -> WALL-CLING & WALL-JUMP ZONE!
-        if (dist < p.trunkSolidR + 0.68 && hopperY > p.trunkSpikeYMax && g.pos.y < crownTopY - 0.4) {
+        if (dist < p.trunkSolidR + 0.78 && hopperY > p.trunkSpikeYMax && g.pos.y < crownTopY - 0.45) {
           const nx = dx / (dist || 1);
           const nz = dz / (dist || 1);
-          g.pos.x = p.x + nx * (p.trunkSolidR + 0.68);
-          g.pos.z = p.z + nz * (p.trunkSolidR + 0.68);
-          // Cancel inward velocity & gently slow downward slide so player can time Wall-Jump easily!
+          g.pos.x = p.x + nx * (p.trunkSolidR + 0.78);
+          g.pos.z = p.z + nz * (p.trunkSolidR + 0.78);
           const vn = g.vx * nx + g.vz * nz;
           if (vn < 0) {
             g.vx -= vn * nx;
             g.vz -= vn * nz;
           }
-          if (g.vy < -3.2) g.vy = -3.2; // Wall-slide grip!
-          g.wallCoyote = 0.28;
+          if (g.vy < -2.6) g.vy = -2.6; // Gentle wall-slide grip for easy Wall-Jump timing!
+          g.wallCoyote = 0.3;
           g.wallNx = nx;
           g.wallNz = nz;
+          g.wallPalm = p;
           if (g.wallSparkTimer <= 0) {
             g.wallSparkTimer = 0.16;
             spawnSlimeSplash(g.pos.x, g.pos.z);
@@ -1615,31 +1675,32 @@
         const dz = g.pos.z - m.z;
         const dist = Math.hypot(dx, dz);
 
-        // 1. Lower spiked stem
-        if (dist < m.stemSpikeR + 0.46 && hopperY <= m.stemSpikeYMax) {
+        // 1. Top bright-red mushroom cap -> SUPER TRAMPOLINE! (Check BEFORE underside so side-jumps land cleanly!)
+        if (dist < m.capR * 0.98 && g.pos.y >= m.capYMid - 0.35 && g.pos.y <= m.capYTop + 0.35 && g.vy <= 1.5) {
+          g.pos.y = m.capYTop - 0.15;
+          g.vy = 18.8;
+          g.grounded = false;
+          window.kusogeAudio.playWallJump();
+          spawnSparkBurst(g.pos.clone(), 12, matSparkGold);
+          triggerCommentary('mushroomBounce', true);
+          continue;
+        }
+        // 2. Lower spiked stem
+        if (dist < m.stemSpikeR + 0.42 && hopperY <= m.stemSpikeYMax) {
           const nx = dx / (dist || 1);
           const nz = dz / (dist || 1);
           killGrasshopper(
             g,
             'trunkPin',
-            new THREE.Vector3(m.x + nx * (m.stemSpikeR + 0.2), Math.max(0.8, hopperY), m.z + nz * (m.stemSpikeR + 0.2)),
+            new THREE.Vector3(m.x + nx * (m.stemSpikeR + 0.2), Math.max(0.7, hopperY), m.z + nz * (m.stemSpikeR + 0.2)),
             m
           );
           break;
         }
-        // 2. Spiked yellow cap underside (impales if rising into yellow underside!)
-        if (dist < m.capR && hopperY >= m.capYMin && hopperY <= m.capYMid && g.vy > 0.2) {
-          killGrasshopper(g, 'mushroomUnder', new THREE.Vector3(g.pos.x, m.capYMin + 0.5, g.pos.z), m);
+        // 3. Spiked yellow cap underside (only if jumping straight up underneath the center/rim!)
+        if (dist < m.capR * 0.8 && hopperY >= m.capYMin && hopperY <= m.capYMid - 0.15 && g.vy > 1.2) {
+          killGrasshopper(g, 'mushroomUnder', new THREE.Vector3(g.pos.x, m.capYMin + 0.35, g.pos.z), m);
           break;
-        }
-        // 3. Top bright-red mushroom cap -> SUPER TRAMPOLINE! (Vaults straight onto nearby palm crowns!)
-        if (dist < m.capR * 0.96 && g.pos.y >= m.capYMid - 0.55 && g.pos.y <= m.capYTop + 0.25 && g.vy <= 0.5) {
-          g.pos.y = m.capYTop - 0.35;
-          g.vy = 18.4;
-          g.grounded = false;
-          window.kusogeAudio.playWallJump();
-          spawnSparkBurst(g.pos.clone(), 10, matSparkGold);
-          triggerCommentary('mushroomBounce', true);
         }
       }
       if (!g.alive) continue;
