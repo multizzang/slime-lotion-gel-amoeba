@@ -138,6 +138,8 @@ body {
 
 .stat-pill.danger { border-color: rgba(255, 51, 75, 0.5); }
 .stat-pill.views { border-color: rgba(27, 212, 255, 0.45); }
+.stat-pill.coins { border-color: rgba(255, 224, 70, 0.6); }
+.stat-pill.coins .stat-val { color: #ffe046; }
 
 .stat-label {
   font-size: 9px;

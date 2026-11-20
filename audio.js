@@ -203,6 +203,58 @@ class KusogeAudio3D {
     noise.start(now);
   }
 
+  playWallJump() {
+    if (!this.sfxEnabled) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Punchy wood-kick + high spring chirp
+    const kick = this.ctx.createOscillator();
+    const kGain = this.ctx.createGain();
+    kick.type = 'triangle';
+    kick.frequency.setValueAtTime(220, now);
+    kick.frequency.exponentialRampToValueAtTime(95, now + 0.08);
+    kGain.gain.setValueAtTime(0.16, now);
+    kGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    kick.connect(kGain);
+    kGain.connect(this.ctx.destination);
+    kick.start(now);
+    kick.stop(now + 0.1);
+
+    const spring = this.ctx.createOscillator();
+    const sGain = this.ctx.createGain();
+    spring.type = 'sawtooth';
+    spring.frequency.setValueAtTime(320, now + 0.02);
+    spring.frequency.exponentialRampToValueAtTime(980, now + 0.18);
+    sGain.gain.setValueAtTime(0.075, now + 0.02);
+    sGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+    spring.connect(sGain);
+    sGain.connect(this.ctx.destination);
+    spring.start(now + 0.02);
+    spring.stop(now + 0.2);
+  }
+
+  playCoin() {
+    if (!this.sfxEnabled) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const freqs = [987.77, 1318.51]; // Crisp Mario-inspired B5 -> E6 coin chime!
+    freqs.forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      const t = now + i * 0.075;
+      osc.frequency.setValueAtTime(f, t);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (i === 1 ? 0.34 : 0.09));
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + (i === 1 ? 0.36 : 0.1));
+    });
+  }
+
   playGoalOne() {
     if (!this.sfxEnabled) return;
     this.ensureContext();

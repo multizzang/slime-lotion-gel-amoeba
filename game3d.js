@@ -280,6 +280,10 @@
     new THREE.MeshLambertMaterial({ color: 0xb80000 }),
   ];
   const matBloodPuddle = new THREE.MeshBasicMaterial({ color: 0xdc0808, transparent: true, opacity: 0.92, side: THREE.DoubleSide });
+  const matGoldCoin = new THREE.MeshPhongMaterial({ color: 0xffd700, emissive: 0x664400, shininess: 140, specular: 0xfff8b0 });
+  const matGoldRim = new THREE.MeshPhongMaterial({ color: 0xffae00, emissive: 0x442200, shininess: 100 });
+  const matCoinBeam = new THREE.MeshBasicMaterial({ color: 0xffe45e, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false });
+  const matSparkGold = new THREE.MeshBasicMaterial({ color: 0xffe84a });
 
   const geoBloodCube = new THREE.BoxGeometry(0.19, 0.19, 0.19);
   const geoBloodDrop = new THREE.SphereGeometry(0.11, 5, 5);
@@ -357,7 +361,8 @@
     group.add(trunk);
 
     // 2. White conical spikes sticking out all around the LOWER 1/3 of the trunk!
-    const spikeRings = [0.62, 1.32, 2.02, 2.55];
+    // Slightly tightened height (y = 0.55..2.25) so jumping onto the smooth middle trunk for Wall-Jump feels super fair!
+    const spikeRings = [0.55, 1.15, 1.75, 2.22];
     spikeRings.forEach((ry, ringIdx) => {
       const count = 6;
       for (let i = 0; i < count; i++) {
@@ -365,8 +370,8 @@
         const t = ry / 7.6;
         const rAtY = (trunkBotR * (1 - t) + trunkTopR * t) * 0.94;
         const sp = new THREE.Mesh(geoSpike, matSpike);
-        sp.scale.setScalar(s * (0.9 + (i % 2) * 0.22));
-        sp.position.set(Math.cos(a) * (rAtY + 0.26 * s), ry * s, Math.sin(a) * (rAtY + 0.26 * s));
+        sp.scale.setScalar(s * (0.9 + (i % 2) * 0.2));
+        sp.position.set(Math.cos(a) * (rAtY + 0.25 * s), ry * s, Math.sin(a) * (rAtY + 0.25 * s));
         sp.rotation.z = -Math.PI / 2;
         sp.rotation.y = -a;
         sp.castShadow = true;
@@ -416,13 +421,14 @@
       x: cfg.x,
       z: cfg.z,
       scale: s,
-      trunkSpikeR: 1.32 * s,
-      trunkSpikeYMax: 2.85 * s,
-      trunkSolidR: 0.92 * s,
+      hasCoin: !!cfg.hasCoin,
+      trunkSpikeR: 1.24 * s,
+      trunkSpikeYMax: 2.38 * s,
+      trunkSolidR: 0.96 * s,
       trunkH,
-      frondR: 4.1 * s,
-      frondYMin: 6.35 * s,
-      frondYMax: 8.1 * s,
+      frondR: 4.05 * s,
+      frondYMin: 6.2 * s,
+      frondYMax: 7.45 * s,
     };
   }
 
@@ -521,39 +527,35 @@
     return g;
   }
 
-  function buildGoalArch(goalCfg) {
-    const g = new THREE.Group();
-    g.position.set(goalCfg.x, 0, goalCfg.z);
-    const halfW = goalCfg.width / 2;
-    const h = 7.4;
+  function buildPalmCoin(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
 
-    const pillarMat = new THREE.MeshLambertMaterial({ color: 0xffd62e, flatShading: true });
-    const leftP = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, h, 8), pillarMat);
-    leftP.position.set(-halfW, h / 2, 0);
-    leftP.castShadow = true;
-    const rightP = leftP.clone();
-    rightP.position.x = halfW;
+    // Spinning golden coin disc
+    const coinPivot = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.28, 22), matGoldCoin);
+    disc.rotation.x = Math.PI / 2;
+    disc.castShadow = true;
+    const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.34, 16), matGoldRim);
+    inner.rotation.x = Math.PI / 2;
+    const emblem = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.78, 0.4), matGoldCoin);
+    coinPivot.add(disc, inner, emblem);
+    group.add(coinPivot);
 
-    const banner = new THREE.Mesh(
-      new THREE.BoxGeometry(goalCfg.width + 1.2, 2.5, 0.5),
-      new THREE.MeshBasicMaterial({ map: goalBannerTex })
-    );
-    banner.position.set(0, h + 0.8, 0);
+    // Tall translucent golden beacon pillar so players can spot treetop coins from anywhere!
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.95, 22, 12, 1, true), matCoinBeam);
+    beam.position.y = 9.5;
+    group.add(beam);
 
-    // Translucent glowing goal curtain between pillars
-    const curtain = new THREE.Mesh(
-      new THREE.PlaneGeometry(goalCfg.width - 0.6, h),
-      new THREE.MeshBasicMaterial({
-        color: 0xffe95c,
-        transparent: true,
-        opacity: 0.24,
-        side: THREE.DoubleSide,
-      })
-    );
-    curtain.position.set(0, h / 2, 0);
-
-    g.add(leftP, rightP, banner, curtain);
-    return { mesh: g, curtain };
+    return {
+      group,
+      coinPivot,
+      beam,
+      x,
+      baseY: y,
+      z,
+      collected: false,
+    };
   }
 
   // Exact Realistic Low-Poly 3D Grasshopper matching step_92_shot_4.png!
@@ -699,11 +701,12 @@
   let stageData = null;
   let palms = [];
   let mushrooms = [];
-  let goalObj = null;
+  let coins = [];
   let grasshoppers = [];
   let bloodParticles = [];
   let bloodPuddles = [];
   let waterSplashes = [];
+  let wallJumpCount = 0;
 
   const keys = {};
   const prevJump = [false, false];
@@ -912,8 +915,8 @@
     uiStage.textContent = `${currentStageIdx + 1} / ${window.STAGES_3D.length}`;
     uiDeaths.textContent = `${totalDeaths}`;
     uiViews.textContent = formatViews(views);
-    const goalCount = grasshoppers.filter((g) => g.inGoal).length;
-    uiGoalCount.textContent = `${goalCount} / ${playerCount}`;
+    const collected = coins.filter((c) => c.collected).length;
+    uiGoalCount.textContent = `${collected} / ${coins.length}`;
   }
 
   function buildStageButtons() {
@@ -1010,6 +1013,28 @@
     });
   }
 
+  function spawnSparkBurst(pos, count = 16, mat = matSparkGold) {
+    for (let i = 0; i < count; i++) {
+      if (waterSplashes.length > 130) {
+        const old = waterSplashes.shift();
+        stageGroup.remove(old.mesh);
+      }
+      const m = new THREE.Mesh(geoBloodCube, mat);
+      m.scale.setScalar(0.7 + Math.random() * 0.8);
+      m.position.copy(pos);
+      stageGroup.add(m);
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 2.5 + Math.random() * 5.8;
+      waterSplashes.push({
+        mesh: m,
+        vx: Math.cos(ang) * spd,
+        vy: 2.2 + Math.random() * 5.2,
+        vz: Math.sin(ang) * spd,
+        life: 0.65 + Math.random() * 0.35,
+      });
+    }
+  }
+
   function createGrasshopperEntity(idx, spawn) {
     const built = buildRealisticGrasshopper(idx);
     built.root.position.set(spawn.x, 0, spawn.z);
@@ -1022,16 +1047,19 @@
       vx: 0,
       vy: 0,
       vz: 0,
-      yaw: 0, // 0 faces -Z toward the GOAL
+      yaw: 0, // 0 faces -Z into the palm forest
       grounded: true,
       coyote: 0,
       jumpBuf: 0,
+      wallCoyote: 0,
+      wallNx: 0,
+      wallNz: 0,
+      wallSparkTimer: 0,
       sumoCooldown: 0,
       stepSfxTimer: 0,
       alive: true,
       impaled: false,
       flipped: false,
-      inGoal: false,
       bleedTimer: 0,
       puddle: null,
       tumbleX: 0,
@@ -1046,6 +1074,7 @@
 
     palms = [];
     mushrooms = [];
+    coins = [];
     bloodParticles = [];
     bloodPuddles = [];
     waterSplashes = [];
@@ -1053,11 +1082,16 @@
     deathZoomTarget = null;
     deathZoomTimer = 0;
 
-    // Build Spiked Palm Trees
+    // Build Spiked Palm Trees & place Golden Coins on top of coin palms!
     for (const pc of stageData.palms) {
       const p = buildPalmTree(pc);
       stageGroup.add(p.mesh);
       palms.push(p);
+      if (p.hasCoin) {
+        const coin = buildPalmCoin(p.x, p.trunkH + 1.55 * p.scale, p.z);
+        stageGroup.add(coin.group);
+        coins.push(coin);
+      }
     }
 
     // Build Spiked Giant Mushrooms
@@ -1074,19 +1108,14 @@
       return (seed - 1) / 2147483646;
     };
     for (let i = 0; i < stageData.grassCount; i++) {
-      const gx = (rand() - 0.5) * 56;
-      const gz = 24 - rand() * (Math.abs(stageData.goal.z) + 36);
-      // Avoid placing right inside a tree trunk
+      const gx = (rand() - 0.5) * 52;
+      const gz = 24 - rand() * 64;
       const tooClose = palms.some((p) => Math.hypot(p.x - gx, p.z - gz) < 2.2)
         || mushrooms.some((m) => Math.hypot(m.x - gx, m.z - gz) < 1.8);
       if (!tooClose) {
         stageGroup.add(buildGrassTuft(gx, gz));
       }
     }
-
-    // Build GOAL Arch
-    goalObj = buildGoalArch(stageData.goal);
-    stageGroup.add(goalObj.mesh);
 
     // Spawn 1 grasshopper (1P mode) OR 2 identical 3D grasshoppers (2P original anime mode!)
     if (playerCount === 1) {
@@ -1120,7 +1149,7 @@
     views += Math.floor(180 + Math.random() * 480 + currentStageIdx * 240);
     window.kusogeAudio.playImpale();
 
-    const aliveLeft = grasshoppers.filter((h) => h.alive && !h.inGoal).length;
+    const aliveLeft = grasshoppers.filter((h) => h.alive).length;
 
     if (type === 'palmFrond') {
       // Exact anime 1:20 iconic scene: dangling impaled high up on palm fronds, spraying vertical blood waterfall!
@@ -1264,14 +1293,16 @@
   }
 
   // =========================================================================
-  // PHYSICS & UPDATE LOOP
+  // PHYSICS & UPDATE LOOP (Cyan Slime Skating + Palm Wall-Jump + Treetop Coins!)
   // =========================================================================
   const GRAVITY = 31;
-  const JUMP_VY = 15.8;       // Launches up to ~4-7.5 units (reaches palm fronds & mushroom caps!)
+  const JUMP_VY = 16.2;         // Reaches ~4.23 units -> clears lower trunk spikes cleanly to wall-jump!
+  const WALL_JUMP_VY = 17.8;    // Wall-jump off smooth brown trunk rockets above palm fronds (~8.8 units)!
+  const WALL_JUMP_PUSH = 7.4;   // Gently kicks outward past frond spikes so you can arc onto the crown!
   const SLIME_ACCEL = 19.5;
   const SLIME_MAX_SPD = 14.5;
   const SLIME_FRICTION = 0.985; // Ultra-slippery cyan slime skating!
-  const AIR_ACCEL = 11.5;
+  const AIR_ACCEL = 16.0;       // Responsive air-steering for curving onto palm crowns after wall-jump!
 
   function update(dt) {
     globalTime += dt;
@@ -1285,8 +1316,12 @@
       if (c.mesh.position.x > 105) c.mesh.position.x = -105;
     }
 
-    if (goalObj) {
-      goalObj.curtain.material.opacity = 0.2 + Math.sin(globalTime * 4.5) * 0.08;
+    // Animate spinning golden coins on top of palm trees!
+    for (const coin of coins) {
+      if (coin.collected) continue;
+      coin.coinPivot.rotation.y += dt * 2.8;
+      coin.group.position.y = coin.baseY + Math.sin(globalTime * 3.2 + coin.x) * 0.32;
+      coin.beam.material.opacity = 0.12 + Math.sin(globalTime * 4 + coin.z) * 0.04;
     }
 
     // Update red 3D voxel blood particles
@@ -1386,7 +1421,7 @@
     // Update each living grasshopper
     for (let i = 0; i < grasshoppers.length; i++) {
       const g = grasshoppers[i];
-      if (!g.alive || g.inGoal) continue;
+      if (!g.alive) continue;
 
       const ctrl = getControls(i);
       const jumpJustPressed = ctrl.jump && !prevJump[i];
@@ -1394,8 +1429,10 @@
       prevJump[i] = ctrl.jump;
 
       if (g.sumoCooldown > 0) g.sumoCooldown -= dt;
+      if (g.wallCoyote > 0) g.wallCoyote = Math.max(0, g.wallCoyote - dt);
+      if (g.wallSparkTimer > 0) g.wallSparkTimer = Math.max(0, g.wallSparkTimer - dt);
       g.coyote = g.grounded ? 0.1 : Math.max(0, g.coyote - dt);
-      g.jumpBuf = jumpJustPressed ? 0.1 : Math.max(0, g.jumpBuf - dt);
+      g.jumpBuf = jumpJustPressed ? 0.12 : Math.max(0, g.jumpBuf - dt);
 
       // Move input relative to world/camera yaw (supports both keyboard & analog mobile joystick!)
       let inX = ctrl.x;
@@ -1406,7 +1443,6 @@
           inX /= inLen;
           inZ /= inLen;
         }
-        // Rotate by camera yaw offset if player orbited camera
         const cosY = Math.cos(camYawOffset);
         const sinY = Math.sin(camYawOffset);
         const wx = inX * cosY + inZ * sinY;
@@ -1418,7 +1454,7 @@
       }
 
       // Ultra-slippery cyan slime lotion friction!
-      const fric = Math.pow(g.grounded ? SLIME_FRICTION : 0.994, dt * 60);
+      const fric = Math.pow(g.grounded ? SLIME_FRICTION : 0.988, dt * 60);
       g.vx *= fric;
       g.vz *= fric;
 
@@ -1429,17 +1465,17 @@
         g.vz *= s;
       }
 
-      // Face movement direction smoothly (with slight skate drift!)
+      // Face movement direction smoothly
       if (horizSpd > 0.6) {
         const targetYaw = Math.atan2(-g.vx, -g.vz);
         let diff = targetYaw - g.yaw;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        g.yaw += diff * Math.min(1, dt * 6.5);
+        g.yaw += diff * Math.min(1, dt * 7.5);
       }
 
-      // Slime skating splash particles & wet squelch SFX
-      if (g.grounded && horizSpd > 3.2) {
+      // Slime skating splash particles & wet squelch SFX (only on cyan slime floor)
+      if (g.grounded && g.pos.y < 0.2 && horizSpd > 3.2) {
         g.stepSfxTimer -= dt;
         if (g.stepSfxTimer <= 0) {
           g.stepSfxTimer = 0.15;
@@ -1448,21 +1484,39 @@
         }
       }
 
-      // Overpowered grasshopper jump!
-      if (g.jumpBuf > 0 && g.coyote > 0) {
-        g.vy = JUMP_VY;
-        g.grounded = false;
-        g.coyote = 0;
-        g.jumpBuf = 0;
-        g.tumbleX = (Math.random() - 0.5) * 3.8;
-        g.tumbleZ = (Math.random() - 0.5) * 4.5;
-        window.kusogeAudio.playJump();
-        spawnSlimeSplash(g.pos.x, g.pos.z);
+      // Jump OR Palm-Trunk WALL-JUMP!
+      if (g.jumpBuf > 0) {
+        if (g.coyote > 0) {
+          // Normal ground / palm-crown jump
+          g.vy = JUMP_VY;
+          g.grounded = false;
+          g.coyote = 0;
+          g.jumpBuf = 0;
+          g.tumbleX = (Math.random() - 0.5) * 2.6;
+          g.tumbleZ = (Math.random() - 0.5) * 3.0;
+          window.kusogeAudio.playJump();
+          if (g.pos.y < 0.2) spawnSlimeSplash(g.pos.x, g.pos.z);
+        } else if (g.wallCoyote > 0) {
+          // PALM TRUNK WALL-JUMP!! (야자수 기둥 벽점프!)
+          g.vy = WALL_JUMP_VY;
+          g.vx = g.wallNx * WALL_JUMP_PUSH;
+          g.vz = g.wallNz * WALL_JUMP_PUSH;
+          g.wallCoyote = 0;
+          g.jumpBuf = 0;
+          g.tumbleX = (Math.random() - 0.5) * 2.2;
+          g.tumbleZ = (Math.random() - 0.5) * 2.2;
+          wallJumpCount++;
+          window.kusogeAudio.playWallJump();
+          spawnSparkBurst(g.pos.clone().add(new THREE.Vector3(0, 0.7, 0)), 10, matSparkGold);
+          if (wallJumpCount === 1 || wallJumpCount % 4 === 0) {
+            triggerCommentary('wallJump', true);
+          }
+        }
       }
 
-      // Early release cuts jump height so skilled players can short-hop safely!
-      if (jumpJustReleased && g.vy > 5.2) {
-        g.vy *= 0.48;
+      // Early release cuts jump height slightly for fine landing control
+      if (jumpJustReleased && g.vy > 6.5) {
+        g.vy *= 0.54;
       }
 
       // Gravity & integrate
@@ -1472,69 +1526,85 @@
       g.pos.z += g.vz * dt;
 
       // Ground collision (cyan slime plain at y = 0)
+      g.grounded = false;
       if (g.pos.y <= 0) {
         g.pos.y = 0;
         g.vy = 0;
         g.grounded = true;
         g.tumbleX = 0;
         g.tumbleZ = 0;
-      } else {
-        g.grounded = false;
       }
 
       // Arena perimeter soft bounce (rolling green hills edge)
-      const arenaLimX = 36;
+      const arenaLimX = 34;
       if (g.pos.x < -arenaLimX) { g.pos.x = -arenaLimX; g.vx = Math.abs(g.vx) * 0.6; }
       if (g.pos.x > arenaLimX) { g.pos.x = arenaLimX; g.vx = -Math.abs(g.vx) * 0.6; }
       if (g.pos.z > 28) { g.pos.z = 28; g.vz = -Math.abs(g.vz) * 0.6; }
-      const minZ = stageData.goal.z - 16;
-      if (g.pos.z < minZ) { g.pos.z = minZ; g.vz = Math.abs(g.vz) * 0.6; }
+      if (g.pos.z < -46) { g.pos.z = -46; g.vz = Math.abs(g.vz) * 0.6; }
 
-      // Update visual mesh transform & comical leg animation
-      g.root.position.copy(g.pos);
-      if (g.grounded) {
-        g.bodyPivot.rotation.set(0, g.yaw, Math.sin(globalTime * 16 + g.id) * Math.min(0.12, horizSpd * 0.01));
-        g.hindLegs.forEach((hl) => { hl.rotation.x = 0; });
-      } else {
-        // Awkward chaotic mid-air grasshopper pose (step_106_shot_6.png!)
-        g.bodyPivot.rotation.x += g.tumbleX * dt;
-        g.bodyPivot.rotation.z += g.tumbleZ * dt;
-        g.bodyPivot.rotation.y = g.yaw;
-        g.hindLegs.forEach((hl) => { hl.rotation.x = -0.85; });
-      }
-
-      // --- COLLISION: SPIKED PALM TREES ---
-      const hopperY = g.pos.y + 0.7;
+      // --- COLLISION: SPIKED PALM TREES (Lower Spikes / Safe Wall-Jump Trunk / Safe Crown Top / Spiked Frond Underside!) ---
+      const hopperY = g.pos.y + 0.65;
       for (const p of palms) {
         const dx = g.pos.x - p.x;
         const dz = g.pos.z - p.z;
         const dist = Math.hypot(dx, dz);
 
-        // 1. High-altitude spiked palm fronds!
-        if (dist < p.frondR && hopperY >= p.frondYMin && hopperY <= p.frondYMax) {
-          killGrasshopper(g, 'palmFrond', new THREE.Vector3(g.pos.x, Math.min(p.frondYMax - 0.3, hopperY), g.pos.z), p);
+        // 1. Safe Landing on TOP of the Palm Tree Crown / Green Leaves! (Grab the Coin!)
+        const crownTopY = p.trunkH + 0.05;
+        if (dist < p.frondR * 0.88 && g.vy <= 1.2 && g.pos.y <= crownTopY + 0.35 && g.pos.y >= crownTopY - 0.85) {
+          g.pos.y = crownTopY;
+          g.vy = 0;
+          g.grounded = true;
+          g.tumbleX = 0;
+          g.tumbleZ = 0;
+          continue;
+        }
+
+        // 2. High-altitude spiked palm frond UNDERSIDE (only impales if rising straight up into underside spikes!)
+        if (
+          dist > p.trunkSolidR + 0.35 &&
+          dist < p.frondR * 0.9 &&
+          g.vy > 0.6 &&
+          hopperY >= p.frondYMin &&
+          hopperY <= p.frondYMax - 0.35
+        ) {
+          killGrasshopper(g, 'palmFrond', new THREE.Vector3(g.pos.x, Math.min(p.frondYMax - 0.25, hopperY), g.pos.z), p);
           break;
         }
-        // 2. Lower spiked trunk!
-        if (dist < p.trunkSpikeR + 0.52 && hopperY <= p.trunkSpikeYMax) {
+
+        // 3. Lower spiked trunk (impales if you don't jump above the white spikes!)
+        if (dist < p.trunkSpikeR + 0.45 && hopperY <= p.trunkSpikeYMax) {
           const normX = dx / (dist || 1);
           const normZ = dz / (dist || 1);
           const pinPos = new THREE.Vector3(
-            p.x + normX * (p.trunkSpikeR + 0.25),
-            Math.max(0.9, hopperY),
-            p.z + normZ * (p.trunkSpikeR + 0.25)
+            p.x + normX * (p.trunkSpikeR + 0.22),
+            Math.max(0.85, hopperY),
+            p.z + normZ * (p.trunkSpikeR + 0.22)
           );
           killGrasshopper(g, 'trunkPin', pinPos, p);
           break;
         }
-        // 3. Upper solid trunk bounce
-        if (dist < p.trunkSolidR + 0.55 && hopperY > p.trunkSpikeYMax && hopperY < p.trunkH) {
+
+        // 4. SAFE SMOOTH BROWN MIDDLE/UPPER TRUNK -> WALL-CLING & WALL-JUMP ZONE!
+        if (dist < p.trunkSolidR + 0.68 && hopperY > p.trunkSpikeYMax && g.pos.y < crownTopY - 0.4) {
           const nx = dx / (dist || 1);
           const nz = dz / (dist || 1);
-          g.pos.x = p.x + nx * (p.trunkSolidR + 0.58);
-          g.pos.z = p.z + nz * (p.trunkSolidR + 0.58);
-          g.vx = nx * 6.5;
-          g.vz = nz * 6.5;
+          g.pos.x = p.x + nx * (p.trunkSolidR + 0.68);
+          g.pos.z = p.z + nz * (p.trunkSolidR + 0.68);
+          // Cancel inward velocity & gently slow downward slide so player can time Wall-Jump easily!
+          const vn = g.vx * nx + g.vz * nz;
+          if (vn < 0) {
+            g.vx -= vn * nx;
+            g.vz -= vn * nz;
+          }
+          if (g.vy < -3.2) g.vy = -3.2; // Wall-slide grip!
+          g.wallCoyote = 0.28;
+          g.wallNx = nx;
+          g.wallNz = nz;
+          if (g.wallSparkTimer <= 0) {
+            g.wallSparkTimer = 0.16;
+            spawnSlimeSplash(g.pos.x, g.pos.z);
+          }
         }
       }
       if (!g.alive) continue;
@@ -1546,7 +1616,7 @@
         const dist = Math.hypot(dx, dz);
 
         // 1. Lower spiked stem
-        if (dist < m.stemSpikeR + 0.48 && hopperY <= m.stemSpikeYMax) {
+        if (dist < m.stemSpikeR + 0.46 && hopperY <= m.stemSpikeYMax) {
           const nx = dx / (dist || 1);
           const nz = dz / (dist || 1);
           killGrasshopper(
@@ -1557,36 +1627,56 @@
           );
           break;
         }
-        // 2. Spiked yellow cap underside (exact anime 1:20 mushroom underside splat!)
-        if (dist < m.capR && hopperY >= m.capYMin && hopperY <= m.capYMid && g.vy >= -2.5) {
+        // 2. Spiked yellow cap underside (impales if rising into yellow underside!)
+        if (dist < m.capR && hopperY >= m.capYMin && hopperY <= m.capYMid && g.vy > 0.2) {
           killGrasshopper(g, 'mushroomUnder', new THREE.Vector3(g.pos.x, m.capYMin + 0.5, g.pos.z), m);
           break;
         }
-        // 3. Top red cap slippery trampoline
-        if (dist < m.capR * 0.92 && hopperY > m.capYMid && hopperY <= m.capYTop && g.vy < 0) {
-          g.pos.y = m.capYTop - 0.5;
-          g.vy = 11.5;
-          window.kusogeAudio.playJump();
+        // 3. Top bright-red mushroom cap -> SUPER TRAMPOLINE! (Vaults straight onto nearby palm crowns!)
+        if (dist < m.capR * 0.96 && g.pos.y >= m.capYMid - 0.55 && g.pos.y <= m.capYTop + 0.25 && g.vy <= 0.5) {
+          g.pos.y = m.capYTop - 0.35;
+          g.vy = 18.4;
+          g.grounded = false;
+          window.kusogeAudio.playWallJump();
+          spawnSparkBurst(g.pos.clone(), 10, matSparkGold);
+          triggerCommentary('mushroomBounce', true);
         }
       }
       if (!g.alive) continue;
 
-      // --- CHECK GOAL ARCH ---
-      const goal = stageData.goal;
-      if (Math.abs(g.pos.x - goal.x) < goal.width / 2 && Math.abs(g.pos.z - goal.z) < 2.2) {
-        g.inGoal = true;
-        g.vx = 0;
-        g.vy = 0;
-        g.vz = 0;
-        g.root.visible = false;
-        const count = grasshoppers.filter((h) => h.inGoal).length;
-        updateHud();
-        if (count >= playerCount) {
-          triggerStageClear();
-          return;
-        } else if (count === 1) {
-          window.kusogeAudio.playGoalOne();
-          triggerCommentary('goalOne', true);
+      // Update visual mesh transform & comical leg animation
+      g.root.position.copy(g.pos);
+      if (g.grounded) {
+        g.bodyPivot.rotation.set(0, g.yaw, Math.sin(globalTime * 16 + g.id) * Math.min(0.12, horizSpd * 0.01));
+        g.hindLegs.forEach((hl) => { hl.rotation.x = 0; });
+      } else {
+        g.bodyPivot.rotation.x += g.tumbleX * dt;
+        g.bodyPivot.rotation.z += g.tumbleZ * dt;
+        g.bodyPivot.rotation.y = g.yaw;
+        g.hindLegs.forEach((hl) => { hl.rotation.x = -0.85; });
+      }
+
+      // --- CHECK TREETOP GOLDEN COINS ---
+      for (const coin of coins) {
+        if (coin.collected) continue;
+        const dx = g.pos.x - coin.x;
+        const dy = (g.pos.y + 0.7) - coin.group.position.y;
+        const dz = g.pos.z - coin.z;
+        if (Math.hypot(dx, dy, dz) < 2.35) {
+          coin.collected = true;
+          coin.group.visible = false;
+          views += 12000;
+          window.kusogeAudio.playCoin();
+          spawnSparkBurst(new THREE.Vector3(coin.x, coin.baseY, coin.z), 28, matSparkGold);
+          updateHud();
+
+          const remaining = coins.filter((c) => !c.collected).length;
+          if (remaining === 0) {
+            triggerStageClear();
+            return;
+          } else {
+            triggerCommentary('coinGet', true);
+          }
         }
       }
     }
@@ -1595,7 +1685,7 @@
     if (grasshoppers.length >= 2) {
       const g0 = grasshoppers[0];
       const g1 = grasshoppers[1];
-      if (g0.alive && g1.alive && !g0.inGoal && !g1.inGoal) {
+      if (g0.alive && g1.alive) {
         const dx = g0.pos.x - g1.pos.x;
         const dy = g0.pos.y - g1.pos.y;
         const dz = g0.pos.z - g1.pos.z;
@@ -1650,7 +1740,7 @@
     }
 
     // Compute midpoint of active grasshoppers
-    const active = grasshoppers.filter((g) => g.alive && !g.inGoal);
+    const active = grasshoppers.filter((g) => g.alive);
     const list = active.length > 0 ? active : grasshoppers;
     let cx = 0;
     let cy = 0;
@@ -1668,19 +1758,19 @@
       spread = list[0].pos.distanceTo(list[1].pos);
     }
 
-    let baseDist = 11.5 + Math.min(14, spread * 0.58);
-    let baseH = 2.9 + Math.min(3.5, cy * 0.45 + spread * 0.12);
-    let lookY = 1.65 + cy * 0.55;
+    let baseDist = 12.2 + Math.min(14, spread * 0.58 + cy * 0.35);
+    let baseH = 3.2 + Math.min(7.5, cy * 0.78 + spread * 0.12);
+    let lookY = 2.1 + cy * 0.72;
 
     if (camMode === 1) {
-      // 3rd-Person Follow (higher, clearer path view)
-      baseDist = 15.5 + Math.min(14, spread * 0.5);
-      baseH = 7.4 + Math.min(4, spread * 0.15);
-      lookY = 1.4 + cy * 0.4;
+      // 3rd-Person Follow (higher, clearer palm-top view)
+      baseDist = 15.8 + Math.min(14, spread * 0.5 + cy * 0.3);
+      baseH = 7.8 + Math.min(7.5, cy * 0.75 + spread * 0.15);
+      lookY = 2.0 + cy * 0.65;
     } else if (camMode === 2) {
       // Free Orbit
-      baseDist = 13.5 + Math.min(12, spread * 0.4);
-      baseH = Math.max(1.4, 5.2 + camPitchOffset * 8);
+      baseDist = 14.0 + Math.min(12, spread * 0.4);
+      baseH = Math.max(1.4, 5.4 + cy * 0.6 + camPitchOffset * 8);
     }
 
     const desiredPos = new THREE.Vector3(
