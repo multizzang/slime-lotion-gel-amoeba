@@ -397,11 +397,11 @@
       frondPivot.position.y = trunkH - 0.1 * s;
       frondPivot.rotation.y = fAng;
 
-      // 3 angled blocky palm segments radiating outward
+      // 3 angled blocky palm segments radiating outward (sleeker ~3.15 radius so twin palms don't clash!)
       const segs = [
-        { len: 1.65, w: 0.72, y: 0.18, x: 1.1, pitch: 0.14 },
-        { len: 1.65, w: 0.62, y: 0.24, x: 2.55, pitch: -0.1 },
-        { len: 1.45, w: 0.44, y: -0.08, x: 3.85, pitch: -0.34 },
+        { len: 1.25, w: 0.68, y: 0.16, x: 0.95, pitch: 0.12 },
+        { len: 1.2, w: 0.56, y: 0.2, x: 2.0, pitch: -0.1 },
+        { len: 1.05, w: 0.4, y: -0.06, x: 2.9, pitch: -0.32 },
       ];
       segs.forEach((seg, si) => {
         const leaf = new THREE.Mesh(
@@ -413,11 +413,11 @@
         leaf.castShadow = true;
         frondPivot.add(leaf);
 
-        // Downward/outward white spikes lining the palm fronds (classic impalement trap!)
-        [-0.36, 0.36].forEach((offsetX) => {
+        // Downward/outward white spikes lining the palm fronds
+        [-0.28, 0.28].forEach((offsetX) => {
           const fsp = new THREE.Mesh(geoSmallSpike, matSpike);
-          fsp.scale.setScalar(s * 0.95);
-          fsp.position.set((seg.x + offsetX) * s, (seg.y - 0.32) * s, (si % 2 === 0 ? 0.16 : -0.16) * s);
+          fsp.scale.setScalar(s * 0.9);
+          fsp.position.set((seg.x + offsetX) * s, (seg.y - 0.3) * s, (si % 2 === 0 ? 0.14 : -0.14) * s);
           fsp.rotation.z = Math.PI + seg.pitch;
           frondPivot.add(fsp);
         });
@@ -432,11 +432,11 @@
       z: cfg.z,
       scale: s,
       hasCoin: !!cfg.hasCoin,
-      trunkSpikeR: 1.18 * s,
-      trunkSpikeYMax: 1.92 * s,
+      trunkSpikeR: 1.15 * s,
+      trunkSpikeYMax: 1.85 * s,
       trunkSolidR: 0.96 * s,
       trunkH,
-      frondR: 3.95 * s,
+      frondR: 3.15 * s,
       frondYMin: 5.95 * s,
       frondYMax: 6.85 * s,
     };
@@ -1327,17 +1327,17 @@
   }
 
   // =========================================================================
-  // PHYSICS & UPDATE LOOP (Cyan Slime Skating + Safe Moss Pads + Palm Wall-Jump!)
+  // PHYSICS & UPDATE LOOP (Pure Cyan Slime Skating + Twin-Palm Wall-Kick!)
   // =========================================================================
   const GRAVITY = 31;
-  const JUMP_VY = 16.8;         // Reaches ~4.55 units -> easily clears lower trunk spikes AND lands on red mushrooms!
-  const WALL_JUMP_VY = 18.2;    // Wall-jump rockets cleanly above palm crowns (~8.8+ units)!
-  const WALL_JUMP_PUSH = 10.6;  // Cleanly clears the palm's own frond edge so you can curve onto the crown!
+  const JUMP_VY = 16.6;         // Reaches ~4.45 units -> cleanly clears lower spikes into Wall-Jump zone!
+  const WALL_JUMP_VY = 16.4;    // Crisp vertical boost per wall-kick (+4.35 units!)
+  const WALL_JUMP_PUSH = 9.8;   // Cleanly crosses the ~3.1-unit gap between twin palm trunks in ~0.32s!
   const SLIME_ACCEL = 19.5;
   const SLIME_MAX_SPD = 14.5;
-  const SLIME_FRICTION = 0.984; // Ultra-slippery cyan slime skating!
-  const GRIP_FRICTION = 0.84;   // Crisp grippy friction on Safe Moss Pads & Palm Tree Crowns!
-  const AIR_ACCEL = 17.5;       // Responsive air control for curving onto palm crowns after wall-jump!
+  const SLIME_FRICTION = 0.984; // Pure ultra-slippery cyan slime skating!
+  const GRIP_FRICTION = 0.84;   // Grippy palm leaves ONLY on top of palm crowns!
+  const AIR_ACCEL = 17.5;       // Responsive air control for landing on palm crowns!
 
   function update(dt) {
     globalTime += dt;
@@ -1535,16 +1535,33 @@
           window.kusogeAudio.playJump();
           if (g.pos.y < 0.2) spawnSlimeSplash(g.pos.x, g.pos.z);
         } else if (g.wallCoyote > 0) {
-          // PALM TRUNK WALL-JUMP!! Cleanly clears this tree's own underside spikes!
+          // TWIN-PALM WALL-JUMP!! Aim-assists gently toward a neighboring palm trunk if one is across the gap!
+          let kickNx = g.wallNx;
+          let kickNz = g.wallNz;
+          let bestScore = -1;
+          for (const other of palms) {
+            if (other === g.wallPalm) continue;
+            const toX = other.x - g.pos.x;
+            const toZ = other.z - g.pos.z;
+            const d = Math.hypot(toX, toZ);
+            if (d > 2.2 && d < 10.5) {
+              const dot = (toX / d) * g.wallNx + (toZ / d) * g.wallNz;
+              if (dot > 0.35 && dot > bestScore) {
+                bestScore = dot;
+                kickNx = toX / d;
+                kickNz = toZ / d;
+              }
+            }
+          }
           g.vy = WALL_JUMP_VY;
-          g.vx = g.wallNx * WALL_JUMP_PUSH;
-          g.vz = g.wallNz * WALL_JUMP_PUSH;
-          g.wallJumpGrace = 0.46; // Protects against self-impalement on the palm you just kicked off!
+          g.vx = kickNx * WALL_JUMP_PUSH;
+          g.vz = kickNz * WALL_JUMP_PUSH;
+          g.wallJumpGrace = 0.48; // Protects mid-wall-kick from underside frond spikes while climbing between trees!
           g.wallJumpPalm = g.wallPalm;
           g.wallCoyote = 0;
           g.jumpBuf = 0;
-          g.tumbleX = (Math.random() - 0.5) * 1.8;
-          g.tumbleZ = (Math.random() - 0.5) * 1.8;
+          g.tumbleX = (Math.random() - 0.5) * 1.6;
+          g.tumbleZ = (Math.random() - 0.5) * 1.6;
           wallJumpCount++;
           window.kusogeAudio.playWallJump();
           spawnSparkBurst(g.pos.clone().add(new THREE.Vector3(0, 0.7, 0)), 12, matSparkGold);
@@ -1618,13 +1635,12 @@
           continue;
         }
 
-        // 2. High-altitude spiked palm frond UNDERSIDE (skipped during clean Wall-Jump escape off THIS palm!)
-        const isSelfWallJump = g.wallJumpGrace > 0 && g.wallJumpPalm === p;
+        // 2. High-altitude spiked palm frond UNDERSIDE (skipped during clean Wall-Jump climbing between palms!)
         if (
-          !isSelfWallJump &&
+          g.wallJumpGrace <= 0 &&
           dist > p.trunkSolidR + 0.55 &&
-          dist < p.frondR * 0.82 &&
-          g.vy > 1.2 &&
+          dist < p.frondR * 0.85 &&
+          g.vy > 1.4 &&
           hopperY >= p.frondYMin &&
           hopperY <= p.frondYMax - 0.25
         ) {
